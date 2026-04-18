@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import axios from '../../utils/axiosInstance';
 import Table from '../../components/Table';
 import Modal from '../../components/Modal';
-import { DollarSign, TrendingUp, TrendingDown, Clock, Plus, Receipt } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Clock, Plus, Receipt, Eye, Download, ExternalLink } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { generateReceipt } from '../../utils/receiptGenerator';
 
 const Finance = () => {
     const [summary, setSummary] = useState({ totalIncome: 0, totalExpense: 0, netBalance: 0 });
     const [payments, setPayments] = useState([]);
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [viewedReceipt, setViewedReceipt] = useState(null);
 
     useEffect(() => {
         fetchFinanceData();
@@ -82,7 +83,7 @@ const Finance = () => {
                         <button className="text-sm font-bold text-primary hover:underline">View All</button>
                     </div>
                     <div className="card !p-0 overflow-hidden">
-                        <Table headers={['Student', 'Amount', 'Type', 'Date']}>
+                    <Table headers={['Student', 'Amount', 'Type', 'Date', 'Actions']}>
                             {payments.slice(0, 5).map((p) => (
                                 <tr key={p._id}>
                                     <td className="px-6 py-4">
@@ -92,6 +93,26 @@ const Finance = () => {
                                     <td className="px-6 py-4 font-black text-green-600">₹{p.amount}</td>
                                     <td className="px-6 py-4 capitalize text-sm">{p.feeType}</td>
                                     <td className="px-6 py-4 text-xs text-gray-500">{new Date(p.paymentDate).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            {p.proofOfPayment && (
+                                                <button 
+                                                    onClick={() => setViewedReceipt(`${axios.defaults.baseURL}/${p.proofOfPayment}`)}
+                                                    className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all border border-blue-100"
+                                                    title="View Proof"
+                                                >
+                                                    <Eye size={14} />
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={() => generateReceipt(p)}
+                                                className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all border border-green-100"
+                                                title="Download Receipt"
+                                            >
+                                                <Download size={14} />
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </Table>
@@ -108,7 +129,7 @@ const Finance = () => {
                         <button className="text-sm font-bold text-primary hover:underline">View All</button>
                     </div>
                     <div className="card !p-0 overflow-hidden">
-                        <Table headers={['Title', 'Category', 'Amount', 'Date']}>
+                        <Table headers={['Title', 'Category', 'Amount', 'Date', 'Actions']}>
                             {expenses.slice(0, 5).map((e) => (
                                 <tr key={e._id}>
                                     <td className="px-6 py-4">
@@ -119,12 +140,51 @@ const Finance = () => {
                                     </td>
                                     <td className="px-6 py-4 font-black text-red-500">₹{e.amount}</td>
                                     <td className="px-6 py-4 text-xs text-gray-500">{new Date(e.date).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4">
+                                        {e.receiptFile ? (
+                                            <button 
+                                                onClick={() => setViewedReceipt(e.receiptFile)}
+                                                className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all border border-blue-100"
+                                                title="View Evidence"
+                                            >
+                                                <Eye size={14} />
+                                            </button>
+                                        ) : (
+                                            <div className="p-2 text-gray-200" title="No Proof Attached">
+                                                <Receipt size={14} />
+                                            </div>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </Table>
                     </div>
                 </div>
             </div>
+
+            {/* Receipt Preview Modal */}
+            <Modal isOpen={!!viewedReceipt} onClose={() => setViewedReceipt(null)} title="Audit Evidence Preview" size="lg">
+                <div className="flex flex-col items-center gap-4 p-4 text-center">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic mb-2">Authenticated Financial Transmission</p>
+                    {viewedReceipt?.toLowerCase().endsWith('.pdf') ? (
+                        <iframe src={viewedReceipt} className="w-full h-[65vh] rounded-[2rem] border-4 border-gray-50 bg-white shadow-inner" title="PDF Receipt Viewer"></iframe>
+                    ) : (
+                        <div className="relative group">
+                            <img src={viewedReceipt} alt="Receipt Proof" className="max-w-full max-h-[65vh] object-contain rounded-[2rem] shadow-2xl border-4 border-white" />
+                            <div className="absolute inset-0 bg-primary/5 rounded-[2rem] pointer-events-none group-hover:bg-transparent transition-colors"></div>
+                        </div>
+                    )}
+                    <div className="flex gap-4 mt-4 w-full justify-center">
+                        <a href={viewedReceipt} download className="flex items-center gap-3 bg-gray-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 transition-all">
+                            <ExternalLink size={14} />
+                            <span>Download Original</span>
+                        </a>
+                        <button onClick={() => setViewedReceipt(null)} className="px-8 py-4 bg-gray-100 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all">
+                            Close Preview
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

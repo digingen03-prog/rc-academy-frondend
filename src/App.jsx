@@ -19,6 +19,7 @@ import Expenses from './pages/superadmin/Expenses';
 import Attendance from './pages/superadmin/Attendance';
 import Courses from './pages/superadmin/Courses';
 import Schedule from './pages/superadmin/Schedule';
+import AdminExpenses from './pages/admin/Expenses';
 import StaffDashboard from './pages/staff/Dashboard';
 import MarksEntry from './pages/staff/Marks';
 import StudentDashboard from './pages/student/Dashboard';
@@ -70,6 +71,7 @@ function App() {
               <Route path="/admin/schedule" element={<Schedule />} />
               <Route path="/admin/profile" element={<Profile />} />
               <Route path="/admin/payments" element={<Payments />} />
+              <Route path="/admin/expenses" element={<AdminExpenses />} />
             </Route>
           </Route>
 

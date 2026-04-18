@@ -32,6 +32,7 @@ export const menuItems = {
         { path: '/admin/courses', name: 'Courses', icon: BookOpen },
         { path: '/admin/schedule', name: 'Schedule', icon: FileSpreadsheet },
         { path: '/admin/payments', name: 'Payments', icon: CreditCard },
+        { path: '/admin/expenses', name: 'Expenses', icon: Wallet },
     ],
     staff: [
         { path: '/staff/dashboard', name: 'Dashboard', icon: LayoutDashboard },
