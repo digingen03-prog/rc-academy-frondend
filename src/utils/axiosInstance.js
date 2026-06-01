@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '', // Use environment variable in production, fallback to proxy in dev
+    baseURL: import.meta.env.VITE_API_URL || '', // Use environment variable or local proxy fallback
 });
 
 axiosInstance.interceptors.request.use(

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from '../utils/axiosInstance';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (email, password) => {
-        // Points to /api/auth/login relative to the instance baseURL
         const { data } = await axios.post('/api/auth/login', { email, password });
         setUser(data);
         localStorage.setItem('userInfo', JSON.stringify(data));

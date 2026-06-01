@@ -11,17 +11,17 @@ const Sidebar = () => {
     return (
         <aside className="hidden md:flex w-72 h-screen bg-card border-r border-border flex-col sticky top-0 overflow-hidden">
             <div className="p-8 flex items-center gap-3">
-                <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-primary/20">
+                <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-primary/20">
                     RC
                 </div>
                 <div>
-                    <h1 className="text-xl font-bold tracking-tighter italic uppercase">RC Academy</h1>
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest leading-none">Management v1.0</p>
+                    <h1 className="text-xl font-black tracking-tighter italic uppercase">RC Academy</h1>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Management v1.0</p>
                 </div>
             </div>
 
             <nav className="flex-1 px-6 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-                <p className="text-[10px] font-semibold uppercase text-gray-400 tracking-[0.2em] mb-4 ml-2">Main Navigation</p>
+                <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-4 ml-2">Main Navigation</p>
                 {items.map((item) => (
                     <NavLink
                         key={item.path}

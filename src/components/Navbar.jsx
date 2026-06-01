@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Bell, Search, User } from 'lucide-react';
+import { getFileUrl } from '../utils/fileHelper';
 
 const Navbar = () => {
     const { user } = useAuth();
@@ -9,10 +10,10 @@ const Navbar = () => {
         <header className="h-20 glass px-4 md:px-8 flex items-center justify-between sticky top-0 z-30">
             {/* Mobile Branding */}
             <div className="flex md:hidden items-center gap-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/20">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-primary/20">
                     RC
                 </div>
-                <h1 className="text-lg font-bold tracking-tighter italic uppercase">RC Academy</h1>
+                <h1 className="text-lg font-black tracking-tighter italic uppercase">RC Academy</h1>
             </div>
 
             {/* Search - Hidden on Small Mobile */}
@@ -33,12 +34,12 @@ const Navbar = () => {
 
                 <div className="flex items-center gap-3 pl-3 md:pl-4 border-l border-border">
                     <div className="hidden md:block text-right">
-                        <p className="text-xs font-semibold uppercase tracking-tight">{user?.name}</p>
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">{user?.role}</p>
+                        <p className="text-xs font-black uppercase tracking-tight">{user?.name}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{user?.role}</p>
                     </div>
                     <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary overflow-hidden shadow-sm">
                         {user?.profilePhoto ? (
-                            <img src={user.profilePhoto} alt={user.name} className="w-full h-full object-cover" />
+                            <img src={getFileUrl(user.profilePhoto)} alt={user.name} className="w-full h-full object-cover" />
                         ) : (
                             <User size={20} />
                         )}

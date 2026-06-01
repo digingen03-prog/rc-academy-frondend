@@ -1,19 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'auto';
-        }
-        return () => {
-            document.body.style.overflow = 'auto';
-        };
-    }, [isOpen]);
-
     if (!isOpen) return null;
 
     const sizeClasses = {
@@ -21,37 +10,35 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
         md: 'max-w-xl w-full',
         lg: 'max-w-3xl w-full',
         xl: 'max-w-5xl w-full',
-        full: 'max-w-[96vw] w-full h-[94vh]',
-        screen: 'w-screen h-screen max-w-none rounded-none'
+        full: 'max-w-[96vw] w-full h-[94vh]'
     };
 
-    const modalContent = (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
             {/* Backdrop */}
             <div 
-                className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity"
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             ></div>
 
             {/* Modal Content */}
             <div className={`relative bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 ${sizeClasses[size] || sizeClasses.md}`}>
                 <div className="flex items-center justify-between p-6 border-b border-border sticky top-0 bg-white z-10">
-                    <h3 className="text-xl font-bold uppercase tracking-tight italic">{title}</h3>
+                    <h3 className="text-xl font-bold">{title}</h3>
                     <button 
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                         <X size={20} className="text-gray-500" />
                     </button>
                 </div>
-                <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="p-6 flex-1 overflow-y-auto">
                     {children}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
-
-    return createPortal(modalContent, document.body);
 };
 
 export default Modal;

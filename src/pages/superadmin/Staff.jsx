@@ -4,6 +4,7 @@ import Table from '../../components/Table';
 import Modal from '../../components/Modal';
 import { Plus, Search, Filter, Edit2, Trash2, Eye, Upload, FileText, User, Users, BookOpen, ShieldCheck, ChevronRight, Briefcase, GraduationCap } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { getFileUrl } from '../../utils/fileHelper';
 
 const Staff = () => {
     const [staff, setStaff] = useState([]);
@@ -194,7 +195,7 @@ const Staff = () => {
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center shrink-0">
                                             {s.staffImage ? (
-                                                <img src={s.staffImage} alt={s.user?.name} className="w-full h-full object-cover" />
+                                                <img src={getFileUrl(s.staffImage)} alt={s.user?.name} className="w-full h-full object-cover" />
                                             ) : <User className="text-gray-300" />}
                                         </div>
                                         <div>
@@ -245,7 +246,7 @@ const Staff = () => {
                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Faculty Portrait</label>
                                 <label className="flex flex-col items-center justify-center border-4 border-dashed border-gray-100 rounded-[3rem] p-10 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group relative overflow-hidden h-64 shadow-inner">
                                     {file || (isEdit && selectedStaff?.staffImage) ? (
-                                        <img src={file ? URL.createObjectURL(file) : selectedStaff?.staffImage} className="absolute inset-0 w-full h-full object-cover" alt="Preview" />
+                                        <img src={file ? URL.createObjectURL(file) : getFileUrl(selectedStaff?.staffImage)} className="absolute inset-0 w-full h-full object-cover" alt="Preview" />
                                     ) : (
                                         <>
                                             <Upload className="text-gray-200 group-hover:text-primary mb-4" size={48} />
@@ -378,7 +379,7 @@ const Staff = () => {
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full translate-x-12 -translate-y-12"></div>
                                 <div className="w-40 h-40 rounded-[3.5rem] bg-white mx-auto overflow-hidden shadow-2xl mb-8 flex items-center justify-center border-4 border-white/20">
                                     {selectedStaff.staffImage ? (
-                                        <img src={selectedStaff.staffImage} className="w-full h-full object-cover" />
+                                        <img src={getFileUrl(selectedStaff.staffImage)} className="w-full h-full object-cover" />
                                     ) : <User size={48} className="text-primary" />}
                                 </div>
                                 <h2 className="text-2xl font-black uppercase tracking-tight leading-none mb-2">{selectedStaff.user?.name}</h2>

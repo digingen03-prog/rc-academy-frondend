@@ -4,6 +4,7 @@ import Table from '../../components/Table';
 import Modal from '../../components/Modal';
 import { Plus, Receipt, ExternalLink, CheckCircle, XCircle, Clock, Wallet, DollarSign } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { getFileUrl } from '../../utils/fileHelper';
 
 const Expenses = () => {
     const [expenses, setExpenses] = useState([]);
@@ -176,16 +177,23 @@ const Expenses = () => {
             <Modal isOpen={!!viewedReceipt} onClose={() => setViewedReceipt(null)} title="Financial Evidence Preview" size="lg">
                 <div className="flex flex-col items-center gap-4 p-4 text-center">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic mb-2">Original Document Transmission</p>
-                    {viewedReceipt?.toLowerCase().endsWith('.pdf') ? (
-                        <iframe src={viewedReceipt} className="w-full h-[65vh] rounded-[2rem] border-4 border-gray-50 bg-white shadow-inner" title="PDF Receipt Viewer"></iframe>
-                    ) : (
-                        <div className="relative group">
-                            <img src={viewedReceipt} alt="Receipt Proof" className="max-w-full max-h-[65vh] object-contain rounded-[2rem] shadow-2xl border-4 border-white" />
-                            <div className="absolute inset-0 bg-primary/5 rounded-[2rem] pointer-events-none group-hover:bg-transparent transition-colors"></div>
-                        </div>
-                    )}
+                    {(() => {
+                        const receiptUrl = getFileUrl(viewedReceipt);
+                        const isPdf = typeof viewedReceipt === 'object' && viewedReceipt?.fileName 
+                            ? viewedReceipt.fileName.toLowerCase().endsWith('.pdf') 
+                            : receiptUrl?.toLowerCase().endsWith('.pdf');
+
+                        return isPdf ? (
+                            <iframe src={receiptUrl} className="w-full h-[65vh] rounded-[2rem] border-4 border-gray-50 bg-white shadow-inner" title="PDF Receipt Viewer"></iframe>
+                        ) : (
+                            <div className="relative group">
+                                <img src={receiptUrl} alt="Receipt Proof" className="max-w-full max-h-[65vh] object-contain rounded-[2rem] shadow-2xl border-4 border-white" />
+                                <div className="absolute inset-0 bg-primary/5 rounded-[2rem] pointer-events-none group-hover:bg-transparent transition-colors"></div>
+                            </div>
+                        );
+                    })()}
                     <div className="flex gap-4 mt-4 w-full justify-center">
-                        <a href={viewedReceipt} download className="flex items-center gap-3 bg-gray-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 transition-all">
+                        <a href={getFileUrl(viewedReceipt)} download className="flex items-center gap-3 bg-gray-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 transition-all">
                             <ExternalLink size={14} />
                             <span>Download Receipt</span>
                         </a>

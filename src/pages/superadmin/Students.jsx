@@ -1,34 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from '../../utils/axiosInstance';
 import Table from '../../components/Table';
 import Modal from '../../components/Modal';
 import { Plus, Search, Filter, Edit2, Trash2, Eye, Upload, FileText, User, Users, BookOpen, ShieldCheck, ChevronRight, Download, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { IndianRupee } from 'lucide-react';
-
-const DetailCard = ({ icon: Icon, label, value }) => (
-    <div className="card !bg-gray-50 border-none !p-4 flex items-center gap-4 group hover:bg-white hover:shadow-md transition-all">
-        <div className="p-2 bg-white rounded-xl text-primary shadow-sm group-hover:bg-primary group-hover:text-white transition-colors">
-            <Icon size={16} />
-        </div>
-        <div>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">{label}</p>
-            <p className="font-bold text-sm tracking-tight text-gray-800">{value || 'N/A'}</p>
-        </div>
-    </div>
-);
+import { getFileUrl } from '../../utils/fileHelper';
 
 const Students = () => {
     const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
-    const [batches, setBatches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isEdit, setIsEdit] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [studentToDelete, setStudentToDelete] = useState(null);
     const [selectedStudent, setSelectedStudent] = useState(null);
+    const [isEdit, setIsEdit] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     const [formData, setFormData] = useState({
@@ -38,8 +23,7 @@ const Students = () => {
         studentType: 'Regular',
         fatherName: '', fatherPhone: '', fatherOccupation: '',
         motherName: '', motherPhone: '', motherOccupation: '',
-        selectedCourses: [],
-        advanceBalance: 0
+        selectedCourses: []
     });
 
     const [files, setFiles] = useState({
@@ -50,8 +34,14 @@ const Students = () => {
     useEffect(() => {
         fetchStudents();
         fetchCourses();
-        fetchBatches();
     }, []);
+
+    const filteredStudents = useMemo(() => {
+        return students.filter(s => 
+            s.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            s.registerNumber.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [students, searchTerm]);
 
     const fetchStudents = async () => {
         try {
@@ -70,15 +60,6 @@ const Students = () => {
             setCourses(data);
         } catch (err) {
             console.error('Failed to fetch courses');
-        }
-    };
-
-    const fetchBatches = async () => {
-        try {
-            const { data } = await axios.get('/api/batches');
-            setBatches(data);
-        } catch (err) {
-            console.error('Failed to fetch batches for selection');
         }
     };
 
@@ -122,8 +103,7 @@ const Students = () => {
             motherName: student.motherName || '',
             motherPhone: student.motherPhone || '',
             motherOccupation: student.motherOccupation || '',
-            selectedCourses: student.courseIds?.map(c => c._id) || [],
-            advanceBalance: student.advanceBalance || 0
+            selectedCourses: student.courseIds?.map(c => c._id) || []
         });
         setIsModalOpen(true);
     };
@@ -133,20 +113,15 @@ const Students = () => {
         setViewModalOpen(true);
     };
 
-    const handleDeleteStudent = (id) => {
-        setStudentToDelete(id);
-        setDeleteModalOpen(true);
-    };
-
-    const confirmDelete = async () => {
-        try {
-            await axios.delete(`/api/students/${studentToDelete}`);
-            toast.success('Record purged successfully');
-            setDeleteModalOpen(false);
-            setStudentToDelete(null);
-            fetchStudents();
-        } catch (err) {
-            toast.error('Failed to eliminate record');
+    const handleDeleteStudent = async (id) => {
+        if (window.confirm('Are you sure you want to delete this student record?')) {
+            try {
+                await axios.delete(`/api/students/${id}`);
+                toast.success('Student record deleted');
+                fetchStudents();
+            } catch (err) {
+                toast.error('Failed to delete student');
+            }
         }
     };
 
@@ -197,8 +172,7 @@ const Students = () => {
             studentType: 'Regular',
             fatherName: '', fatherPhone: '', fatherOccupation: '',
             motherName: '', motherPhone: '', motherOccupation: '',
-            selectedCourses: [],
-            advanceBalance: 0
+            selectedCourses: []
         });
         setFiles({ studentPhoto: null, applicationForm: null });
         setSelectedStudent(null);
@@ -246,16 +220,13 @@ const Students = () => {
                     <div className="p-20 text-center font-bold text-gray-400 italic animate-pulse">Synchronizing records...</div>
                 ) : (
                     <Table headers={['Student Details', 'Identifier', 'Academic Info', 'Actions']}>
-                        {students.filter(s => 
-                            s.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            s.registerNumber.toLowerCase().includes(searchTerm.toLowerCase())
-                        ).map((s) => (
+                        {filteredStudents.map((s) => (
                             <tr key={s._id} className="hover:bg-primary/5 transition-all group">
                                 <td className="px-6 py-5">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center shrink-0">
                                             {s.studentPhoto ? (
-                                                <img src={s.studentPhoto} alt={s.user?.name} className="w-full h-full object-cover" />
+                                                <img src={getFileUrl(s.studentPhoto)} alt={s.user?.name} className="w-full h-full object-cover" />
                                             ) : <User className="text-gray-300" />}
                                         </div>
                                         <div>
@@ -287,7 +258,7 @@ const Students = () => {
             </div>
 
             {/* Modal: Form */}
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isEdit ? "Refine Student Data" : "Onboarding Protocol"} size="screen">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isEdit ? "Refine Student Data" : "Onboarding Protocol"} size="full">
                 <form onSubmit={handleSubmit} className="space-y-12">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                         {/* Photo Column */}
@@ -296,7 +267,7 @@ const Students = () => {
                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Identity Signature</label>
                                 <label className="flex flex-col items-center justify-center border-4 border-dashed border-gray-100 rounded-[2.5rem] p-10 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group relative overflow-hidden h-72">
                                     {files.studentPhoto || (isEdit && selectedStudent?.studentPhoto) ? (
-                                        <img src={files.studentPhoto ? URL.createObjectURL(files.studentPhoto) : selectedStudent?.studentPhoto} className="absolute inset-0 w-full h-full object-cover" alt="Preview" />
+                                        <img src={files.studentPhoto ? URL.createObjectURL(files.studentPhoto) : getFileUrl(selectedStudent?.studentPhoto)} className="absolute inset-0 w-full h-full object-cover" alt="Preview" />
                                     ) : (
                                         <>
                                             <Upload className="text-gray-200 group-hover:text-primary mb-4" size={48} />
@@ -351,30 +322,8 @@ const Students = () => {
                                         <input type="text" className="input-field" placeholder="+..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Academic Batch (Intake)</label>
-                                        <select 
-                                            className="input-field font-bold" 
-                                            value={formData.batch} 
-                                            onChange={e => setFormData({...formData, batch: e.target.value})}
-                                            required
-                                        >
-                                            <option value="">Select Batch</option>
-                                            {batches.map(b => (
-                                                <option key={b._id} value={b.name}>{b.name}</option>
-                                            ))}
-                                            {/* Fallback for legacy data */}
-                                            {formData.batch && !batches.find(b => b.name === formData.batch) && (
-                                                <option value={formData.batch}>{formData.batch} (Legacy)</option>
-                                            )}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Digital Coordinates</label>
                                         <input type="email" className="input-field" placeholder="email@address.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase text-primary ml-1 italic">Advance Payment (Credit Balance)</label>
-                                        <input type="number" className="input-field !border-primary/30 font-black text-primary" placeholder="0.00" value={formData.advanceBalance} onChange={e => setFormData({...formData, advanceBalance: e.target.value})} />
                                     </div>
                                 </div>
                             </div>
@@ -386,9 +335,17 @@ const Students = () => {
                                     <h3 className="font-black uppercase text-sm tracking-widest text-gray-800">Academic Trajectory</h3>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-1 md:col-span-2">
+                                    <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Last Affiliation</label>
                                         <input type="text" className="input-field" placeholder="Institution Name" value={formData.schoolInstitution} onChange={e => setFormData({...formData, schoolInstitution: e.target.value})} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Operational Batch</label>
+                                        <select className="input-field" value={formData.batch} onChange={e => setFormData({...formData, batch: e.target.value})}>
+                                            <option value="">Select Batch</option>
+                                            <option value="2024-25">2024-25 Academy</option>
+                                            <option value="2025-26">2025-26 Academy</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -431,126 +388,202 @@ const Students = () => {
             </Modal>
 
             {/* View Profile Modal - Refined */}
-            {/* Modal: View Profile - Premium Redesign */}
-            <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title="Student Digital Dossier" size="screen">
+            <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title="Comprehensive Profile View" size="full">
                 {selectedStudent && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-6">
-                        {/* Header Banner Section */}
-                        <div className="relative h-48 rounded-[2.5rem] bg-black overflow-hidden group shadow-2xl">
-                             <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-black/60 z-10"></div>
-                             <div className="absolute inset-0 opacity-30 group-hover:scale-110 transition-transform duration-700 bg-[url('https://images.unsplash.com/photo-1523050853064-59f6f363a0a3?auto=format&fit=crop&q=80')] bg-cover bg-center"></div>
-                             
-                             <div className="absolute -bottom-12 left-10 z-20 flex items-end gap-10">
-                                <div className="w-36 h-36 rounded-[2.5rem] border-8 border-white shadow-2xl overflow-hidden bg-white">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+                        {/* Sidebar Column */}
+                        <div className="lg:col-span-1 space-y-6">
+                            {/* Avatar Identity Card */}
+                            <div className="card !bg-primary !text-white text-center !p-8 relative overflow-hidden shadow-xl shadow-primary/20">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full translate-x-12 -translate-y-12 shrink-0"></div>
+                                <div className="w-36 h-36 rounded-[2.5rem] bg-white mx-auto overflow-hidden shadow-2xl mb-6 flex items-center justify-center border-4 border-white/20 shrink-0">
                                     {selectedStudent.studentPhoto ? (
-                                        <img src={selectedStudent.studentPhoto} className="w-full h-full object-cover" alt={selectedStudent.user?.name} />
-                                    ) : (
-                                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300">
-                                            <User size={64} />
-                                        </div>
-                                    )}
+                                        <img src={getFileUrl(selectedStudent.studentPhoto)} className="w-full h-full object-cover" alt="Student Avatar" />
+                                    ) : <User size={48} className="text-primary" />}
                                 </div>
-                                <div className="pb-16">
-                                    <h2 className="text-5xl font-bold text-white italic uppercase leading-none tracking-tighter drop-shadow-lg">{selectedStudent.user?.name}</h2>
-                                    <div className="flex gap-2 mt-4">
-                                        <span className="text-white font-semibold uppercase tracking-widest text-[10px] bg-primary px-3 py-1 rounded-lg">ID: {selectedStudent.registerNumber}</span>
-                                        <span className="text-white font-bold uppercase tracking-widest text-[9px] bg-white/20 backdrop-blur-md px-3 py-1 rounded-lg italic">Verified Entity</span>
+                                <h2 className="text-xl font-black uppercase tracking-tight">{selectedStudent.user?.name}</h2>
+                                <p className="text-[10px] font-black opacity-70 tracking-widest mt-2 uppercase">{selectedStudent.studentType} Classification</p>
+                                
+                                <div className="mt-8 pt-6 border-t border-white/20 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[8px] font-black uppercase opacity-60">Database ID</p>
+                                        <p className="font-black text-xs tracking-wider">{selectedStudent.registerNumber}</p>
                                     </div>
-                                </div>
-                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mt-16 px-4">
-                            {/* Primary Details */}
-                            <div className="lg:col-span-2 space-y-10">
-                                <div className="grid grid-cols-2 gap-6">
-                                    <DetailCard icon={Calendar} label="DOB Protocol" value={selectedStudent.dateOfBirth} />
-                                    <DetailCard icon={Users} label="Social Standing" value={selectedStudent.studentType} />
-                                    <DetailCard icon={Download} label="Email Protocol" value={selectedStudent.user?.email} />
-                                    <DetailCard icon={FileText} label="Phone Coordinate" value={selectedStudent.user?.phone} />
-                                </div>
-
-                                <div className="card !bg-gray-50/50 border-none space-y-6 !p-8">
-                                     <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 flex items-center gap-2 border-b border-gray-100 pb-3"> <BookOpen size={16} className="text-primary" /> Program Trajectory</h3>
-                                     <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Active Batch</p>
-                                            <p className="font-bold text-4xl text-primary italic uppercase tracking-tighter mt-1">{selectedStudent.batch}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Enrollment Count</p>
-                                            <p className="font-bold text-4xl tracking-tighter mt-1">{selectedStudent.courseIds?.length || 0} Modules</p>
-                                        </div>
-                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Secondary Information */}
-                            <div className="space-y-8">
-                                <div className="bg-green-50 p-8 rounded-[2rem] border border-green-100 shadow-sm">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2.5 bg-green-100 text-green-600 rounded-2xl"><IndianRupee size={20} /></div>
-                                        <span className="text-[11px] font-black uppercase text-green-700 tracking-wider">Safety Balance</span>
-                                    </div>
-                                    <p className="text-5xl font-bold text-green-700 tracking-tighter italic">₹{(selectedStudent.advanceBalance || 0).toLocaleString()}</p>
-                                    <p className="text-[10px] font-semibold text-green-600/60 uppercase mt-2 tracking-widest">SECURE CREDIT AVAILABLE</p>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-gray-400 border-b border-gray-100 pb-3">Parental Guardians</h3>
-                                    <div className="space-y-5">
-                                        <div className="flex items-center gap-4 group">
-                                            <div className="w-12 h-12 rounded-[1.2rem] bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-primary group-hover:text-white transition-all duration-300"> <User size={20} /> </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase">Father Signature</p>
-                                                <p className="font-black text-sm italic uppercase tracking-tight">{selectedStudent.fatherName || 'Not Listed'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4 group">
-                                            <div className="w-12 h-12 rounded-[1.2rem] bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-primary group-hover:text-white transition-all duration-300"> <User size={20} /> </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase">Mother Signature</p>
-                                                <p className="font-black text-sm italic uppercase tracking-tight">{selectedStudent.motherName || 'Not Listed'}</p>
-                                            </div>
-                                        </div>
+                                    <div>
+                                        <p className="text-[8px] font-black uppercase opacity-60">Status</p>
+                                        <p className="font-black text-xs italic tracking-widest text-emerald-300">VERIFIED</p>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Financial Status Card */}
+                            <div className="card border-none bg-emerald-50/50 p-6 flex items-center justify-between border-l-4 border-emerald-500">
+                                <div>
+                                    <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Advance Credit Balance</p>
+                                    <p className="font-black text-2xl text-emerald-700 mt-1">₹{selectedStudent.advanceBalance || 0}</p>
+                                </div>
+                                <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-2xl">
+                                    <ShieldCheck size={24} />
+                                </div>
+                            </div>
+
+                            {/* Document Attachment Widget */}
+                            <div className="space-y-2">
+                                <span className="text-[9px] font-black uppercase text-gray-400 tracking-widest ml-1">Institutional Files</span>
+                                {selectedStudent.applicationForm && selectedStudent.applicationForm.documentUrl ? (
+                                    <a 
+                                        href={getFileUrl(selectedStudent.applicationForm)} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-between p-4 bg-gray-50/50 hover:bg-primary/5 border border-dashed border-gray-200 hover:border-primary/30 rounded-2xl transition-all group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2.5 bg-primary/10 text-primary rounded-xl group-hover:bg-primary group-hover:text-white transition-all">
+                                                <FileText size={18} />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-xs font-black text-gray-800 uppercase tracking-tight">Application Form</p>
+                                                <p className="text-[9px] font-bold text-gray-400 truncate max-w-[150px] mt-0.5">
+                                                    {selectedStudent.applicationForm.fileName || 'Attached PDF'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Download size={16} className="text-gray-400 group-hover:text-primary transition-colors shrink-0" />
+                                    </a>
+                                ) : (
+                                    <div className="p-4 bg-gray-50/50 border border-dashed border-gray-200 rounded-2xl text-center text-[10px] font-bold text-gray-400 uppercase italic">
+                                        No attachment uploaded
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Footer actions in View */}
-                        <div className="flex gap-4 pt-10 border-t border-gray-100 px-4">
-                            <button className="flex-[2] btn-primary group !py-6 !rounded-3xl shadow-xl shadow-primary/20">
-                                <FileText size={22} className="group-hover:rotate-12 transition-transform" />
-                                <span className="font-black tracking-[0.2em] text-sm">GENERATE DIGITAL TRANSCRIPT</span>
-                            </button>
-                            <button onClick={() => setViewModalOpen(false)} className="flex-1 bg-gray-100 hover:bg-black hover:text-white transition-all rounded-3xl font-black text-xs uppercase tracking-[0.2em]">EXIT DOSSIER</button>
+                        {/* Details Details Details Column */}
+                        <div className="lg:col-span-3 space-y-8">
+                            {/* Section 1: Legal Identity */}
+                            <div className="space-y-4">
+                                <h3 className="font-black text-xs uppercase tracking-[0.2em] border-b-2 border-gray-50 pb-3 flex items-center gap-2">
+                                    <User size={16} className="text-primary"/> Legal Profile & Contact coordinates
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <div className="card !bg-gray-50 border-none !p-4">
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Digital Username</p>
+                                        <p className="font-bold text-sm text-gray-800 tracking-tight mt-1">{selectedStudent.user?.username || 'N/A'}</p>
+                                    </div>
+                                    <div className="card !bg-gray-50 border-none !p-4">
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Verified Contact Phone</p>
+                                        <p className="font-bold text-sm text-gray-800 tracking-tight mt-1">{selectedStudent.user?.phone || 'N/A'}</p>
+                                    </div>
+                                    <div className="card !bg-gray-50 border-none !p-4">
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Timeline Birth Date</p>
+                                        <p className="font-bold text-sm text-gray-800 tracking-tight mt-1">{selectedStudent.dateOfBirth || 'N/A'}</p>
+                                    </div>
+                                    <div className="card !bg-gray-50 border-none !p-4 lg:col-span-2">
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Verified Email Coordinates</p>
+                                        <p className="font-bold text-sm text-gray-800 tracking-tight mt-1 truncate">{selectedStudent.user?.email || 'N/A'}</p>
+                                    </div>
+                                    <div className="card !bg-gray-50 border-none !p-4 lg:col-span-3">
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Current Residential Coordinates</p>
+                                        <p className="font-bold text-xs text-gray-700 tracking-tight mt-1 leading-relaxed">{selectedStudent.address || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 2: Academic Standings */}
+                            <div className="space-y-4">
+                                <h3 className="font-black text-xs uppercase tracking-[0.2em] border-b-2 border-gray-50 pb-3 flex items-center gap-2">
+                                    <BookOpen size={16} className="text-orange-500"/> Institutional Standing & Curriculum
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="card !bg-gray-50 border-none !p-5">
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Operational Academy Batch</p>
+                                        <p className="font-black text-lg text-primary uppercase mt-1 italic">{selectedStudent.batch || 'Unassigned'}</p>
+                                    </div>
+                                    <div className="card !bg-gray-50 border-none !p-5">
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Previous Affiliated Institution</p>
+                                        <p className="font-bold text-sm text-gray-800 mt-1">{selectedStudent.schoolInstitution || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Assigned Modules</span>
+                                    <div className="flex flex-wrap gap-3">
+                                        {selectedStudent.courseIds && selectedStudent.courseIds.length > 0 ? (
+                                            selectedStudent.courseIds.map(c => (
+                                                <span key={c._id} className="bg-primary/5 text-primary border border-primary/10 px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-tight flex items-center gap-2 shadow-sm">
+                                                    <BookOpen size={14} className="opacity-75" />
+                                                    <span>{c.courseName} <span className="opacity-50">({c.courseCode})</span></span>
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs text-gray-400 italic font-medium ml-1">No assigned curriculum courses.</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 3: Parental Representatives */}
+                            <div className="space-y-4">
+                                <h3 className="font-black text-xs uppercase tracking-[0.2em] border-b-2 border-gray-50 pb-3 flex items-center gap-2">
+                                    <Users size={16} className="text-blue-500"/> Verified Parental Representatives
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Father Context */}
+                                    <div className="card border-none bg-blue-50/20 p-6 space-y-4 border-t-4 border-blue-400">
+                                        <div className="flex items-center gap-2 text-blue-600">
+                                            <User size={16} />
+                                            <span className="font-black text-[10px] uppercase tracking-widest">Father Status</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            <div>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase">Full Name</p>
+                                                <p className="font-bold text-sm text-gray-800 mt-0.5">{selectedStudent.fatherName || 'N/A'}</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 pt-1">
+                                                <div>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase">Contact Number</p>
+                                                    <p className="font-bold text-xs text-gray-800 mt-0.5">{selectedStudent.fatherPhone || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase">Occupation</p>
+                                                    <p className="font-bold text-xs text-gray-800 mt-0.5">{selectedStudent.fatherOccupation || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Mother Context */}
+                                    <div className="card border-none bg-pink-50/10 p-6 space-y-4 border-t-4 border-pink-400">
+                                        <div className="flex items-center gap-2 text-pink-600">
+                                            <User size={16} />
+                                            <span className="font-black text-[10px] uppercase tracking-widest">Mother Status</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            <div>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase">Full Name</p>
+                                                <p className="font-bold text-sm text-gray-800 mt-0.5">{selectedStudent.motherName || 'N/A'}</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 pt-1">
+                                                <div>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase">Contact Number</p>
+                                                    <p className="font-bold text-xs text-gray-800 mt-0.5">{selectedStudent.motherPhone || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase">Occupation</p>
+                                                    <p className="font-bold text-xs text-gray-800 mt-0.5">{selectedStudent.motherOccupation || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Close Action Footer */}
+                            <div className="flex justify-end pt-4">
+                                <button onClick={() => setViewModalOpen(false)} className="px-10 py-4 bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">Close Profile</button>
+                            </div>
                         </div>
                     </div>
                 )}
-            </Modal>
-
-            {/* Delete Confirmation Modal */}
-            <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Security Protocol: Record Purge" size="sm">
-                <div className="space-y-6 text-center">
-                    <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto animate-bounce">
-                        <Trash2 size={40} />
-                    </div>
-                    <div>
-                        <h4 className="font-black uppercase text-lg text-gray-800 tracking-tight">Irreversible Deletion</h4>
-                        <p className="text-xs font-bold text-gray-400 mt-2 leading-relaxed">
-                            You are about to permanently eliminate a student identity from the central registry. This action cannot be undone.
-                        </p>
-                    </div>
-                    <div className="flex flex-col gap-3">
-                        <button onClick={confirmDelete} className="w-full bg-red-600 hover:bg-black text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-lg shadow-red-100">
-                            EXECUTE PURGE
-                        </button>
-                        <button onClick={() => setDeleteModalOpen(false)} className="w-full bg-gray-50 hover:bg-gray-100 text-gray-400 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all">
-                            ABORT PROTOCOL
-                        </button>
-                    </div>
-                </div>
             </Modal>
         </div>
     );

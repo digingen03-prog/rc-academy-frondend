@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { User, Mail, Phone, MapPin, Shield, Camera, Lock, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from '../utils/axiosInstance';
+import { getFileUrl } from '../utils/fileHelper';
 
 const Profile = () => {
     const { user } = useAuth();
@@ -36,7 +37,7 @@ const Profile = () => {
                         <div className="relative inline-block mb-6">
                             <div className="w-32 h-32 rounded-3xl bg-gray-100 border-4 border-white shadow-xl overflow-hidden flex items-center justify-center text-primary mx-auto">
                                 {user?.profilePhoto ? (
-                                    <img src={user.profilePhoto} alt={user.name} className="w-full h-full object-cover" />
+                                    <img src={getFileUrl(user.profilePhoto)} alt={user.name} className="w-full h-full object-cover" />
                                 ) : (
                                     <User size={48} />
                                 )}

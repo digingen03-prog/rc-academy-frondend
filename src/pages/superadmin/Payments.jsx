@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../../utils/axiosInstance';
 import Table from '../../components/Table';
+import { getFileUrl } from '../../utils/fileHelper';
 import Modal from '../../components/Modal';
 import { Plus, CreditCard, Search, Calendar, FileText, User, TrendingUp, AlertCircle, CheckCircle, ChevronRight, Filter, Download, ChevronDown, Image as ImageIcon, Upload, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateReceipt } from '../../utils/receiptGenerator';
 
 const Payments = () => {
     const [activeTab, setActiveTab] = useState('tracker'); // 'tracker' or 'history'
@@ -18,8 +18,6 @@ const Payments = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [proofFile, setProofFile] = useState(null);
-    const [isProofModalOpen, setIsProofModalOpen] = useState(false);
-    const [selectedProofUrl, setSelectedProofUrl] = useState('');
 
     // Filter State
     const [filters, setFilters] = useState({
@@ -33,7 +31,7 @@ const Payments = () => {
     const [formData, setFormData] = useState({
         studentId: '', amount: '', paymentMode: 'cash',
         receiptNumber: '', feeType: 'tuition', term: 'Monthly Fee',
-        remarks: '', status: 'paid', paymentTime: 'Ontime'
+        remarks: '', status: 'paid'
     });
 
     useEffect(() => {
@@ -102,7 +100,7 @@ const Payments = () => {
         setFormData({ 
             studentId: '', amount: '', paymentMode: 'cash', 
             receiptNumber: `REC-${Date.now().toString().slice(-6)}`, 
-            feeType: 'tuition', term: 'Monthly Fee', remarks: '', status: 'paid', paymentTime: 'Ontime' 
+            feeType: 'tuition', term: 'Monthly Fee', remarks: '', status: 'paid' 
         });
     };
 
@@ -116,29 +114,6 @@ const Payments = () => {
             remarks: `Monthly fee for ${new Date(filters.year, filters.month).toLocaleString('default', { month: 'long' })}`
         });
         setIsModalOpen(true);
-    };
-
-    const handleViewProof = (proofPath) => {
-        const fullUrl = `${axios.defaults.baseURL}/${proofPath}`;
-        setSelectedProofUrl(fullUrl);
-        setIsProofModalOpen(true);
-    };
-
-    const handleDownloadReceipt = (paymentData) => {
-        try {
-            // For monthly tracker, we synthesize some data if missing
-            const receiptData = {
-                ...paymentData,
-                paymentDate: paymentData.paymentDate || new Date(filters.year, filters.month).toISOString(),
-                receiptNumber: paymentData.receiptNumber || `MONTHLY-${filters.month + 1}-${filters.year}-${paymentData.registerNumber}`,
-                term: paymentData.term || `${months[filters.month]} ${filters.year} Fee`
-            };
-            generateReceipt(receiptData);
-            toast.success('Receipt generated successfully');
-        } catch (error) {
-            console.error('Receipt generation error:', error);
-            toast.error('Failed to generate receipt');
-        }
     };
 
     // Client-side filtering logic
@@ -370,7 +345,7 @@ const Payments = () => {
                                 exit={{ opacity: 0, y: -20 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                <Table headers={['Student Identity', 'Course Vector', 'Advance Credit', 'Financial Quote', 'Execution Status', 'Actions']}>
+                                <Table headers={['Student Identity', 'Course Vector', 'Financial Quote', 'Execution Status', 'Actions']}>
                                     {filteredStatusData.map((s) => (
                                         <tr key={s.studentId} className="hover:bg-primary/[0.02] transition-colors group">
                                             <td className="px-6 py-6">
@@ -393,12 +368,6 @@ const Payments = () => {
                                                     {s.courses.map((c, i) => (
                                                         <span key={i} className="bg-gray-50 border border-gray-100 text-[9px] font-black uppercase px-2 py-1 rounded-lg text-gray-500 shadow-xs">{c}</span>
                                                     ))}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-6">
-                                                <div className="space-y-1">
-                                                    <p className="text-[10px] font-black text-primary uppercase italic">Credit Balance</p>
-                                                    <p className="font-black text-sm text-primary">₹{(s.advanceBalance || 0).toLocaleString()}</p>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-6">
@@ -428,29 +397,17 @@ const Payments = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-6 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    {s.status === 'paid' && (
-                                                        <button 
-                                                            onClick={() => handleDownloadReceipt(s)}
-                                                            className="p-4 rounded-2xl bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white transition-all shadow-[0_10px_20px_-10px_rgba(34,197,94,0.5)] active:scale-90 hover:-translate-y-1"
-                                                            title="Download Monthly Receipt"
-                                                        >
-                                                            <Download size={20} />
-                                                        </button>
-                                                    )}
-                                                    <button 
-                                                        onClick={() => handleQuickPay(s)}
-                                                        disabled={s.status === 'paid'}
-                                                        className={`p-4 rounded-2xl transition-all ${
-                                                            s.status === 'paid' 
-                                                                ? 'bg-gray-50 text-gray-200 cursor-not-allowed opacity-50' 
-                                                                : 'bg-primary/10 text-primary hover:bg-primary hover:text-white shadow-[0_10px_20px_-10px_rgba(245,158,11,0.5)] active:scale-90 hover:-translate-y-1'
-                                                        }`}
-                                                        title="Quick Pay"
-                                                    >
-                                                        <CreditCard size={20} />
-                                                    </button>
-                                                </div>
+                                                <button 
+                                                    onClick={() => handleQuickPay(s)}
+                                                    disabled={s.status === 'paid'}
+                                                    className={`p-4 rounded-2xl transition-all ${
+                                                        s.status === 'paid' 
+                                                            ? 'bg-gray-50 text-gray-200 cursor-not-allowed opacity-50' 
+                                                            : 'bg-primary/10 text-primary hover:bg-primary hover:text-white shadow-[0_10px_20px_-10px_rgba(245,158,11,0.5)] active:scale-90 hover:-translate-y-1'
+                                                    }`}
+                                                >
+                                                    <CreditCard size={20} />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -464,7 +421,7 @@ const Payments = () => {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                <Table headers={['Receipt Vector', 'Beneficiary Identity', 'Commit Details', 'Execution Timeline', 'Verified Status', 'Actions']}>
+                                <Table headers={['Receipt Vector', 'Beneficiary Identity', 'Commit Details', 'Execution Timeline', 'Verified Status']}>
                                     {historyData.filter(h => h.receiptNumber.toLowerCase().includes(searchTerm.toLowerCase())).map((p) => (
                                         <tr key={p._id} className="hover:bg-primary/[0.02] transition-colors group">
                                             <td className="px-6 py-6">
@@ -476,7 +433,7 @@ const Payments = () => {
                                             <td className="px-6 py-6">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-[11px] uppercase border-2 border-white shadow-md">
-                                                        {p.studentId?.name ? p.studentId.name[0] : 'U'}
+                                                        {p.studentId?.name[0]}
                                                     </div>
                                                     <p className="font-black text-sm tracking-tight text-gray-900">{p.studentId?.name}</p>
                                                 </div>
@@ -487,42 +444,26 @@ const Payments = () => {
                                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{p.paymentMode} Protocol</p>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-6 font-bold">
-                                                <div className="flex flex-col gap-1">
-                                                    <p className="text-xs font-black text-gray-800 uppercase tracking-tighter">{new Date(p.paymentDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${
-                                                            p.paymentTime === 'delay' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
-                                                        }`}>
-                                                            {p.paymentTime || 'Ontime'}
-                                                        </span>
-                                                        <p className="text-[9px] font-black text-gray-300 uppercase italic tracking-widest">{p.term}</p>
-                                                    </div>
-                                                </div>
+                                            <td className="px-6 py-6">
+                                                <p className="text-xs font-black text-gray-800 uppercase tracking-tighter">{new Date(p.paymentDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                                <p className="text-[9px] font-black text-gray-300 uppercase italic tracking-widest">{p.term}</p>
                                             </td>
                                             <td className="px-6 py-6">
                                                 <div className="flex items-center gap-3">
                                                     {p.proofOfPayment ? (
-                                                        <button 
-                                                            onClick={() => handleViewProof(p.proofOfPayment)}
-                                                            className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm group/btn"
+                                                        <a 
+                                                            href={getFileUrl(p.proofOfPayment)} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-600 rounded-lg text-[10px] font-black uppercase hover:bg-green-500 hover:text-white transition-all shadow-sm"
                                                         >
-                                                            <Eye size={14} className="group-hover/btn:scale-110 transition-transform"/>
+                                                            <Eye size={14}/>
                                                             View Proof
-                                                        </button>
+                                                        </a>
                                                     ) : (
                                                         <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.1em] italic">No Proof</span>
                                                     )}
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-6 text-right">
-                                                <button 
-                                                    onClick={() => handleDownloadReceipt(p)}
-                                                    className="p-3 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all active:scale-95"
-                                                    title="Download Receipt"
-                                                >
-                                                    <Download size={16} />
-                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -563,12 +504,8 @@ const Payments = () => {
                                                 <span className="text-[10px] font-black uppercase text-gray-400">Already Paid</span>
                                                 <span className="font-black text-sm text-green-600">₹{selectedStudent.totalPaid.toLocaleString()}</span>
                                             </div>
-                                            <div className="flex items-center justify-between pb-2">
-                                                <span className="text-[10px] font-black uppercase text-gray-400">Advance Credit</span>
-                                                <span className="font-black text-sm text-primary italic">₹{(selectedStudent.advanceBalance || 0).toLocaleString()}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-100">
-                                                <span className="text-[10px] font-black uppercase text-primary font-bold">Outstanding Dues</span>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black uppercase text-primary">Pending</span>
                                                 <span className="font-black text-lg text-primary">₹{selectedStudent.balance.toLocaleString()}</span>
                                             </div>
                                         </div>
@@ -647,29 +584,6 @@ const Payments = () => {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 italic">Payment Timing</label>
-                                        <div className="flex gap-2">
-                                            {[
-                                                { id: 'Ontime', label: 'On Time Settlement', color: 'bg-blue-500' },
-                                                { id: 'delay', label: 'Delayed Response', color: 'bg-red-500' }
-                                            ].map(t => (
-                                                <button
-                                                    key={t.id}
-                                                    type="button"
-                                                    onClick={() => setFormData({...formData, paymentTime: t.id})}
-                                                    className={`flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border-2 transition-all ${
-                                                        formData.paymentTime === t.id 
-                                                            ? `${t.color} border-transparent text-white shadow-xl` 
-                                                            : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
-                                                    }`}
-                                                >
-                                                    {t.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 italic">Execution status</label>
                                         <div className="flex gap-2">
                                             {['paid', 'partial'].map(s => (
@@ -695,7 +609,6 @@ const Payments = () => {
                                             <option value="cash">Cash Settlement</option>
                                             <option value="upi">UPI Digital Transfer</option>
                                             <option value="cash + upi">Hybrid (Cash + UPI)</option>
-                                            <option value="advance">Advance Balance (Deduct)</option>
                                         </select>
                                     </div>
 
@@ -713,18 +626,6 @@ const Payments = () => {
                                         <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 italic">Term / Cycle</label>
                                         <input type="text" value={formData.term} onChange={(e) => setFormData({...formData, term: e.target.value})} className="input-field !py-5 font-bold" placeholder="e.g. Current Month" />
                                     </div>
-                                    
-                                    {formData.paymentMode === 'advance' && selectedStudent && (
-                                        <div className="md:col-span-2 p-6 bg-orange-50 border-2 border-dashed border-orange-200 rounded-[2rem] flex items-center gap-4 text-orange-700">
-                                            <AlertCircle className="shrink-0" size={24} />
-                                            <div>
-                                                <p className="font-black text-xs uppercase tracking-widest">Advance Deduction Protocol</p>
-                                                <p className="text-[10px] font-bold mt-1 uppercase opacity-80">
-                                                    This transaction will deduct ₹{formData.amount || 0} from the current credit (₹{selectedStudent.advanceBalance || 0}).
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
 
                                 <div className="space-y-4 py-8 px-8 bg-gray-50/50 rounded-[2.5rem] border border-dashed border-gray-200">
@@ -783,43 +684,6 @@ const Payments = () => {
                         </div>
                     </div>
                 </form>
-            </Modal>
-
-            {/* Proof Inspection Modal */}
-            <Modal isOpen={isProofModalOpen} onClose={() => setIsProofModalOpen(false)} title="Audit Evidence Inspection" size="lg">
-                <div className="space-y-6">
-                    <div className="p-4 bg-primary/5 rounded-2xl flex items-center gap-3">
-                        <AlertCircle className="text-primary" size={20}/>
-                        <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Verifying transaction authenticity via uploaded media.</p>
-                    </div>
-                    
-                    <div className="relative group rounded-[2rem] overflow-hidden bg-gray-100 border-2 border-dashed border-gray-200 aspect-video flex items-center justify-center">
-                        {selectedProofUrl.toLowerCase().endsWith('.pdf') ? (
-                            <iframe 
-                                src={selectedProofUrl} 
-                                className="w-full h-[500px]" 
-                                title="Proof Document"
-                            />
-                        ) : (
-                            <img 
-                                src={selectedProofUrl} 
-                                alt="Proof of Payment" 
-                                className="max-w-full max-h-[500px] object-contain shadow-2xl group-hover:scale-[1.02] transition-transform duration-500"
-                            />
-                        )}
-                    </div>
-
-                    <div className="flex justify-center">
-                        <a 
-                            href={selectedProofUrl} 
-                            download 
-                            className="btn-primary !py-4 px-10 !rounded-2xl !text-[10px] uppercase font-black tracking-[0.2em]"
-                        >
-                            <Download size={18}/>
-                            Download Original File
-                        </a>
-                    </div>
-                </div>
             </Modal>
         </div>
     );
