@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../../utils/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 import { 
     Users, 
     GraduationCap, 
@@ -23,6 +24,7 @@ import {
 } from 'recharts';
 
 const Dashboard = () => {
+    const { user } = useAuth();
     const [stats, setStats] = useState({
         totalStudents: 0,
         totalStaff: 0,
@@ -93,7 +95,7 @@ const Dashboard = () => {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'admin' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
                 <StatCard 
                     title="Total Students" 
                     value={stats.totalStudents} 
@@ -114,13 +116,15 @@ const Dashboard = () => {
                     icon={BookOpen} 
                     color="bg-purple-500" 
                 />
-                <StatCard 
-                    title="Today's Revenue" 
-                    value={`$${stats.todayRevenue}`} 
-                    icon={DollarSign} 
-                    color="bg-green-500" 
-                    trend={-2} 
-                />
+                {user?.role !== 'admin' && (
+                    <StatCard 
+                        title="Today's Revenue" 
+                        value={`$${stats.todayRevenue}`} 
+                        icon={DollarSign} 
+                        color="bg-green-500" 
+                        trend={-2} 
+                    />
+                )}
             </div>
 
             {/* Charts Section */}
