@@ -345,6 +345,8 @@ const Students = () => {
                                             <option value="">Select Batch</option>
                                             <option value="2024-25">2024-25 Academy</option>
                                             <option value="2025-26">2025-26 Academy</option>
+                                            <option value="2026-27">2026-27 Academy</option>
+                                            <option value="2026-2027">2026-2027 Academy</option>
                                         </select>
                                     </div>
                                 </div>

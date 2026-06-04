@@ -1,7 +1,19 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+    let url = import.meta.env.VITE_API_URL || '';
+    if (!url) {
+        url = import.meta.env.MODE === 'production' 
+            ? 'https://api.rcacademy.online' 
+            : `${window.location.protocol}//${window.location.hostname}:5000`;
+    } else if (url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        url = url.replace('localhost', window.location.hostname);
+    }
+    return url;
+};
+
 const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'production' ? 'https://api.rcacademy.online' : ''), 
+    baseURL: getBaseURL(), 
 });
 
 axiosInstance.interceptors.request.use(

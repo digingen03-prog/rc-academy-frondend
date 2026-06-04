@@ -37,7 +37,7 @@ const Courses = () => {
     const fetchStaff = async () => {
         try {
             const { data } = await axios.get('/api/staff');
-            setStaff(data.map(s => ({ _id: s._id, name: s.user?.name })));
+            setStaff(data.map(s => ({ _id: s.user?._id, name: s.user?.name })));
         } catch (err) {
             console.error('Failed to fetch staff for course assignment');
         }
