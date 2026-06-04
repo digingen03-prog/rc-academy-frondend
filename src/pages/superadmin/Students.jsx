@@ -9,12 +9,15 @@ import { getFileUrl } from '../../utils/fileHelper';
 const Students = () => {
     const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
+    const [batches, setBatches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [isEdit, setIsEdit] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
+    const [selectedBatchFilter, setSelectedBatchFilter] = useState('all');
     const [showPassword, setShowPassword] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -35,14 +38,31 @@ const Students = () => {
     useEffect(() => {
         fetchStudents();
         fetchCourses();
+        fetchBatches();
     }, []);
 
+    const fetchBatches = async () => {
+        try {
+            const { data } = await axios.get('/api/batches');
+            setBatches(data);
+        } catch (err) {
+            console.error('Failed to fetch batches');
+        }
+    };
+
     const filteredStudents = useMemo(() => {
-        return students.filter(s => 
-            s.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            s.registerNumber.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [students, searchTerm]);
+        return students.filter(s => {
+            const matchesSearch = s.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                 s.registerNumber.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const matchesCourse = selectedCourseFilter === 'all' || 
+                                 s.courseIds?.some(c => c._id === selectedCourseFilter);
+            
+            const matchesBatch = selectedBatchFilter === 'all' || s.batch === selectedBatchFilter;
+            
+            return matchesSearch && matchesCourse && matchesBatch;
+        });
+    }, [students, searchTerm, selectedCourseFilter, selectedBatchFilter]);
 
     const fetchStudents = async () => {
         try {
@@ -220,14 +240,49 @@ const Students = () => {
                 </div>
             </div>
 
+            {/* Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="card !p-2 bg-white/50 flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase text-gray-400 ml-2">Filter Course</span>
+                    <select 
+                        value={selectedCourseFilter} 
+                        onChange={(e) => setSelectedCourseFilter(e.target.value)}
+                        className="flex-1 bg-transparent border-none outline-none font-bold text-xs cursor-pointer"
+                    >
+                        <option value="all">All Courses</option>
+                        {courses.map(c => <option key={c._id} value={c._id}>{c.courseName}</option>)}
+                    </select>
+                </div>
+                <div className="card !p-2 bg-white/50 flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase text-gray-400 ml-2">Filter Batch</span>
+                    <select 
+                        value={selectedBatchFilter} 
+                        onChange={(e) => setSelectedBatchFilter(e.target.value)}
+                        className="flex-1 bg-transparent border-none outline-none font-bold text-xs cursor-pointer"
+                    >
+                        <option value="all">All Batches</option>
+                        {batches.map(b => <option key={b._id} value={b.name}>{b.name}</option>)}
+                    </select>
+                </div>
+                <button 
+                    onClick={() => { setSelectedCourseFilter('all'); setSelectedBatchFilter('all'); setSearchTerm(''); }}
+                    className="p-3 bg-gray-50 text-gray-400 hover:text-red-500 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest border border-transparent hover:border-red-500/20 active:scale-95"
+                >
+                    Reset Filters
+                </button>
+            </div>
+
             {/* Table */}
             <div className="overflow-hidden">
                 {loading ? (
                     <div className="p-20 text-center font-bold text-gray-400 italic animate-pulse">Synchronizing records...</div>
                 ) : (
-                    <Table headers={['Student Details', 'Identifier', 'Academic Info', 'Actions']}>
-                        {filteredStudents.map((s) => (
+                    <Table headers={['S.No', 'Student Details', 'Identifier', 'Academic Info', 'Actions']}>
+                        {filteredStudents.map((s, index) => (
                             <tr key={s._id} className="hover:bg-primary/5 transition-all group">
+                                <td className="px-6 py-5 font-black text-xs text-gray-400">
+                                    {index + 1}
+                                </td>
                                 <td className="px-6 py-5">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center shrink-0">
@@ -248,7 +303,18 @@ const Students = () => {
                                 </td>
                                 <td className="px-6 py-5">
                                     <p className="text-xs font-black uppercase text-gray-800">{s.batch || 'Unassigned'}</p>
-                                    <p className="text-[9px] font-bold text-primary italic uppercase opacity-70">{s.studentType}</p>
+                                    <p className="text-[9px] font-bold text-primary italic uppercase opacity-70 mb-1">{s.studentType}</p>
+                                    <div className="flex flex-wrap gap-1 mt-1 max-w-[200px]">
+                                        {s.courseIds && s.courseIds.length > 0 ? (
+                                            s.courseIds.map(c => (
+                                                <span key={c._id} className="bg-gray-100 text-[8px] font-black uppercase px-2 py-0.5 rounded-md text-gray-600 border border-gray-200/50">
+                                                    {c.courseName}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-[8px] font-bold text-gray-300 italic uppercase">No Courses</span>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="px-6 py-5 text-right">
                                     <div className="flex justify-end gap-2">

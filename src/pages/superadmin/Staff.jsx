@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from '../../utils/axiosInstance';
 import Table from '../../components/Table';
 import Modal from '../../components/Modal';
-import { Plus, Search, Filter, Edit2, Trash2, Eye, Upload, FileText, User, Users, BookOpen, ShieldCheck, ChevronRight, Briefcase, GraduationCap } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, Trash2, Eye, Upload, FileText, User, Users, BookOpen, ShieldCheck, ChevronRight, Briefcase, GraduationCap, EyeOff, Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getFileUrl } from '../../utils/fileHelper';
 
@@ -15,13 +15,14 @@ const Staff = () => {
     const [selectedStaff, setSelectedStaff] = useState(null);
     const [isEdit, setIsEdit] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '', email: '', username: '', password: '',
         phone: '', address: '', 
         qualification: '', experience: '',
         designation: 'Staff', department: '', salary: '',
-        selectedCourses: []
+        selectedCourses: [], staffId: ''
     });
 
     const [file, setFile] = useState(null);
@@ -51,9 +52,21 @@ const Staff = () => {
         }
     };
 
+    const generateStaffId = () => {
+        const random = Math.floor(1000 + Math.random() * 9000);
+        return `RC-${random}`;
+    };
+
     const handleOpenAddModal = () => {
         setIsEdit(false);
         resetForm();
+        const newStaffId = generateStaffId();
+        setFormData(prev => ({ 
+            ...prev, 
+            staffId: newStaffId,
+            username: newStaffId,
+            password: 'Staff@2026'
+        }));
         setIsModalOpen(true);
     };
 
@@ -72,7 +85,8 @@ const Staff = () => {
             designation: s.designation || 'Staff',
             department: s.department || '',
             salary: s.salary || '',
-            selectedCourses: s.subjectIds?.filter(Boolean).map(c => c._id) || []
+            selectedCourses: s.subjectIds?.filter(Boolean).map(c => c._id) || [],
+            staffId: s.staffId || ''
         });
         setIsModalOpen(true);
     };
@@ -138,7 +152,7 @@ const Staff = () => {
             phone: '', address: '', 
             qualification: '', experience: '',
             designation: 'Staff', department: '', salary: '',
-            selectedCourses: []
+            selectedCourses: [], staffId: ''
         });
         setFile(null);
         setSelectedStaff(null);
@@ -264,12 +278,50 @@ const Staff = () => {
                                 </div>
                                 <div className="space-y-4">
                                     <div className="space-y-1">
+                                        <label className="text-[9px] font-black uppercase text-gray-400">Staff Identifier</label>
+                                        <input readOnly type="text" className="w-full px-4 py-3 bg-primary/5 text-primary border-2 border-primary/10 rounded-2xl outline-none font-black tracking-widest cursor-not-allowed text-sm" value={formData.staffId} />
+                                    </div>
+                                    <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-gray-400">Username *</label>
                                         <input required type="text" className="w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm" placeholder="john.doe" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase text-gray-400">Password *</label>
-                                        <input required={!isEdit} type="password" className="w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm" placeholder="••••••••" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                                        <label className="text-[9px] font-black uppercase text-gray-400">Secure Key *</label>
+                                        <div className="relative flex items-center">
+                                            <input 
+                                                required={!isEdit} 
+                                                type={showPassword ? "text" : "password"} 
+                                                className="w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm pr-16" 
+                                                placeholder="••••••••" 
+                                                value={formData.password} 
+                                                onChange={e => setFormData({...formData, password: e.target.value})} 
+                                            />
+                                            <div className="absolute right-3 flex items-center gap-1.5 text-gray-400">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setShowPassword(!showPassword)} 
+                                                    className="p-1 hover:text-primary transition-colors focus:outline-none"
+                                                    title={showPassword ? "Hide password" : "Show password"}
+                                                >
+                                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => {
+                                                        if (formData.password) {
+                                                            navigator.clipboard.writeText(formData.password);
+                                                            toast.success("Secure Key copied to clipboard!");
+                                                        } else {
+                                                            toast.warning("Secure Key is empty");
+                                                        }
+                                                    }} 
+                                                    className="p-1 hover:text-primary transition-colors focus:outline-none"
+                                                    title="Copy secure key"
+                                                >
+                                                    <Copy size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
