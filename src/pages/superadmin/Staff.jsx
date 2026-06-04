@@ -359,13 +359,12 @@ const Staff = () => {
                         </div>
                     </div>
 
-                    <div className="fixed bottom-0 left-0 right-0 p-8 pt-0 bg-gradient-to-t from-white via-white pointer-events-none">
-                        <div className="max-w-[96vw] mx-auto pointer-events-auto">
-                            <button type="submit" className="w-full bg-primary hover:bg-black text-white py-6 rounded-3xl font-black text-lg uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center justify-center gap-4">
-                                {isEdit ? 'OVERWRITE FACULTY DATA' : 'COMMIT STAFF ONBOARDING'}
-                                <ChevronRight size={24} />
-                            </button>
-                        </div>
+                    {/* Bottom Action Bar */}
+                    <div className="flex justify-end pt-6">
+                        <button type="submit" className="btn-primary !py-3.5 !px-8 !rounded-2xl !text-xs uppercase tracking-widest shadow-xl shadow-primary/20">
+                            {isEdit ? 'OVERWRITE FACULTY DATA' : 'COMMIT STAFF ONBOARDING'}
+                            <ChevronRight size={16} />
+                        </button>
                     </div>
                 </form>
             </Modal>

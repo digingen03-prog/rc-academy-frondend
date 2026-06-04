@@ -7,20 +7,22 @@ import { toast } from 'react-toastify';
 
 const Courses = () => {
     const [courses, setCourses] = useState([]);
-    const [staff, setStaff] = useState([]);
+    const [batches, setBatches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState(null);
+    const [newBatchName, setNewBatchName] = useState('');
 
     const [formData, setFormData] = useState({
         courseName: '', courseCode: '', description: '',
-        staffId: '', duration: '', fees: ''
+        batch: '', duration: '', fees: ''
     });
 
     useEffect(() => {
         fetchCourses();
-        fetchStaff();
+        fetchBatches();
     }, []);
 
     const fetchCourses = async () => {
@@ -34,18 +36,43 @@ const Courses = () => {
         }
     };
 
-    const fetchStaff = async () => {
+    const fetchBatches = async () => {
         try {
-            const { data } = await axios.get('/api/staff');
-            setStaff(data.map(s => ({ _id: s.user?._id, name: s.user?.name })));
+            const { data } = await axios.get('/api/batches');
+            setBatches(data);
         } catch (err) {
-            console.error('Failed to fetch staff for course assignment');
+            console.error('Failed to fetch batches for course assignment');
+        }
+    };
+
+    const handleCreateBatch = async (e) => {
+        e.preventDefault();
+        if (!newBatchName.trim()) return;
+        try {
+            await axios.post('/api/batches', { name: newBatchName });
+            toast.success('Batch created successfully!');
+            setNewBatchName('');
+            fetchBatches();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to create batch');
+        }
+    };
+
+    const handleDeleteBatch = async (id) => {
+        if (window.confirm('Are you sure you want to delete this batch?')) {
+            try {
+                await axios.delete(`/api/batches/${id}`);
+                toast.success('Batch deleted successfully!');
+                fetchBatches();
+            } catch (err) {
+                toast.error('Failed to delete batch');
+            }
         }
     };
 
     const handleOpenAddModal = () => {
         setIsEdit(false);
-        setFormData({ courseName: '', courseCode: '', description: '', staffId: '', duration: '', fees: '' });
+        setFormData({ courseName: '', courseCode: '', description: '', batch: '', duration: '', fees: '' });
         setIsModalOpen(true);
     };
 
@@ -56,7 +83,7 @@ const Courses = () => {
             courseName: course.courseName,
             courseCode: course.courseCode,
             description: course.description,
-            staffId: course.staffId?._id || '',
+            batch: course.batch || '',
             duration: course.duration,
             fees: course.fees
         });
@@ -99,13 +126,22 @@ const Courses = () => {
                     <h1 className="text-2xl font-black italic uppercase tracking-tighter">Academic Curriculum</h1>
                     <p className="text-gray-500 text-sm italic">Define learning paths, fee structures, and faculty assignments.</p>
                 </div>
-                <button 
-                    onClick={handleOpenAddModal}
-                    className="btn-primary flex items-center gap-2"
-                >
-                    <Plus size={18} />
-                    <span>Create New Program</span>
-                </button>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setIsBatchModalOpen(true)}
+                        className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-5 py-3 rounded-2xl font-bold text-sm transition-all"
+                    >
+                        <Users size={18} />
+                        <span>Manage Batches</span>
+                    </button>
+                    <button 
+                        onClick={handleOpenAddModal}
+                        className="btn-primary flex items-center gap-2"
+                    >
+                        <Plus size={18} />
+                        <span>Create New Program</span>
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -143,10 +179,10 @@ const Courses = () => {
                             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl group-hover:bg-white transition-colors border border-transparent group-hover:border-gray-100">
                                 <div className="flex items-center gap-2 text-xs text-gray-600 font-bold uppercase tracking-tighter">
                                     <Users size={14} className="text-primary" />
-                                    <span>Faculty</span>
+                                    <span>Batch</span>
                                 </div>
-                                <span className="text-xs font-black truncate max-w-[100px]">{course.staffId?.name || 'Unassigned'}</span>
-                            </div>
+                                <span className="text-xs font-black truncate max-w-[100px]">{course.batch || 'Unassigned'}</span>
+                             </div>
                         </div>
 
                         <div className="flex items-center justify-between mt-auto">
@@ -181,11 +217,11 @@ const Courses = () => {
                             <input type="text" required value={formData.duration} onChange={(e) => setFormData({...formData, duration: e.target.value})} className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-primary focus:bg-white font-bold text-sm transition-all" placeholder="12 Months" />
                         </div>
                         <div>
-                            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">Expert Assignment</label>
-                            <select value={formData.staffId} onChange={(e) => setFormData({...formData, staffId: e.target.value})} className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-primary focus:bg-white font-bold text-sm transition-all">
-                                <option value="">Draft Assignment</option>
-                                {staff.map(s => (
-                                    <option key={s._id} value={s._id}>{s.name}</option>
+                            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">Academic Batch *</label>
+                            <select required value={formData.batch} onChange={(e) => setFormData({...formData, batch: e.target.value})} className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-primary focus:bg-white font-bold text-sm transition-all">
+                                <option value="">Select Batch</option>
+                                {batches.map(b => (
+                                    <option key={b._id} value={b.name}>{b.name}</option>
                                 ))}
                             </select>
                         </div>
@@ -198,6 +234,52 @@ const Courses = () => {
                         {isEdit ? 'OVERWRITE PROGRAM' : 'COMMIT PROGRAM TO REGISTRY'}
                     </button>
                 </form>
+            </Modal>
+
+            {/* Batch Management Modal */}
+            <Modal isOpen={isBatchModalOpen} onClose={() => setIsBatchModalOpen(false)} title="Batch Registry Management">
+                <div className="space-y-6 text-gray-900">
+                    {/* Create Batch Form */}
+                    <form onSubmit={handleCreateBatch} className="flex gap-3 items-end">
+                        <div className="flex-1">
+                            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">New Batch Name *</label>
+                            <input 
+                                type="text" 
+                                required 
+                                value={newBatchName} 
+                                onChange={(e) => setNewBatchName(e.target.value)} 
+                                className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-primary focus:bg-white font-black text-sm transition-all" 
+                                placeholder="e.g. 2026-2027" 
+                            />
+                        </div>
+                        <button type="submit" className="btn-primary !py-4 px-6 !rounded-2xl text-xs uppercase tracking-widest shadow-xl">
+                            Create
+                        </button>
+                    </form>
+
+                    {/* Existing Batches List */}
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase text-gray-400 ml-1">Existing Batches</label>
+                        <div className="max-h-60 overflow-y-auto space-y-2 custom-scrollbar">
+                            {batches.map(b => (
+                                <div key={b._id} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl hover:bg-gray-100/50 transition-all border border-gray-100">
+                                    <span className="text-sm font-black text-gray-800 uppercase">{b.name}</span>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleDeleteBatch(b._id)} 
+                                        className="text-gray-400 hover:text-red-500 p-2 hover:bg-white rounded-xl transition-all"
+                                        title="Delete Batch"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                            {batches.length === 0 && (
+                                <p className="text-xs text-gray-400 italic text-center py-6">No batches found.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

@@ -359,6 +359,12 @@ const Payments = () => {
                                                             <p className="text-[10px] font-bold text-gray-400 tracking-widest">{s.registerNumber}</p>
                                                             <div className="w-1 h-1 rounded-full bg-gray-200"></div>
                                                             <p className="text-[10px] font-black text-primary/60 uppercase">{s.batch}</p>
+                                                            {s.advanceBalance > 0 && (
+                                                                <>
+                                                                    <div className="w-1 h-1 rounded-full bg-gray-200"></div>
+                                                                    <p className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md uppercase">Adv: ₹{s.advanceBalance.toLocaleString()}</p>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -500,9 +506,9 @@ const Payments = () => {
                                                 <span className="text-[10px] font-black uppercase text-gray-400">Total Dues</span>
                                                 <span className="font-black text-sm">₹{selectedStudent.totalDue.toLocaleString()}</span>
                                             </div>
-                                            <div className="flex items-center justify-between py-2 border-y border-dashed border-gray-100">
-                                                <span className="text-[10px] font-black uppercase text-gray-400">Already Paid</span>
-                                                <span className="font-black text-sm text-green-600">₹{selectedStudent.totalPaid.toLocaleString()}</span>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black uppercase text-gray-400">Advance Balance</span>
+                                                <span className="font-black text-sm text-emerald-600">₹{selectedStudent.advanceBalance?.toLocaleString() || 0}</span>
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[10px] font-black uppercase text-primary">Pending</span>
@@ -535,22 +541,22 @@ const Payments = () => {
                                             <motion.div 
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
-                                                className="p-6 bg-dark text-white rounded-3xl border-none shadow-2xl space-y-4"
+                                                className="p-6 bg-gray-50 border border-gray-200/50 rounded-3xl space-y-4"
                                             >
-                                                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Post-Commit Projection</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Post-Commit Projection</p>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-bold italic">New Balance</span>
-                                                    <h3 className={`text-2xl font-black ${(selectedStudent.balance - formData.amount) <= 0 ? 'text-green-400' : 'text-orange-400'}`}>
+                                                    <span className="text-xs font-bold italic text-gray-700">New Balance</span>
+                                                    <h3 className={`text-2xl font-black ${(selectedStudent.balance - formData.amount) <= 0 ? 'text-green-600' : 'text-orange-600'}`}>
                                                         ₹{Math.max(0, selectedStudent.balance - formData.amount).toLocaleString()}
                                                     </h3>
                                                 </div>
                                                 {(selectedStudent.balance - formData.amount) <= 0 ? (
-                                                    <div className="flex items-center gap-2 text-[10px] font-black text-green-400 bg-green-400/10 p-2 rounded-xl">
+                                                    <div className="flex items-center gap-2 text-[10px] font-black text-green-600 bg-green-500/10 p-2 rounded-xl">
                                                         <CheckCircle size={14}/>
                                                         FULL SETTLEMENT ACHIEVED
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-2 text-[10px] font-black text-orange-400 bg-orange-400/10 p-2 rounded-xl">
+                                                    <div className="flex items-center gap-2 text-[10px] font-black text-orange-600 bg-orange-500/10 p-2 rounded-xl">
                                                         <AlertCircle size={14}/>
                                                         PARTIAL COMMIT DETECTED
                                                     </div>
@@ -608,6 +614,7 @@ const Payments = () => {
                                         <select value={formData.paymentMode} onChange={(e) => setFormData({...formData, paymentMode: e.target.value})} className="input-field !py-5 font-bold">
                                             <option value="cash">Cash Settlement</option>
                                             <option value="upi">UPI Digital Transfer</option>
+                                            <option value="advance">Advance Balance Deduction</option>
                                             <option value="cash + upi">Hybrid (Cash + UPI)</option>
                                         </select>
                                     </div>

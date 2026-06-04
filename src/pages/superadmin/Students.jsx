@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from '../../utils/axiosInstance';
 import Table from '../../components/Table';
 import Modal from '../../components/Modal';
-import { Plus, Search, Filter, Edit2, Trash2, Eye, Upload, FileText, User, Users, BookOpen, ShieldCheck, ChevronRight, Download, Calendar } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, Trash2, Eye, Upload, FileText, User, Users, BookOpen, ShieldCheck, ChevronRight, Download, Calendar, EyeOff, Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getFileUrl } from '../../utils/fileHelper';
 
@@ -15,12 +15,13 @@ const Students = () => {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [isEdit, setIsEdit] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '', email: '', username: '', password: '',
         phone: '', address: '', registerNumber: '', 
         schoolInstitution: '', batch: '', dateOfBirth: '', 
-        studentType: 'Regular',
+        studentType: 'Regular', advanceBalance: '',
         fatherName: '', fatherPhone: '', fatherOccupation: '',
         motherName: '', motherPhone: '', motherOccupation: '',
         selectedCourses: []
@@ -89,14 +90,14 @@ const Students = () => {
             name: student.user?.name || '',
             email: student.user?.email || '',
             username: student.user?.username || '',
-            password: '', 
-            phone: student.user?.phone || '',
+            phone: student.user?.phone?.replace(/^\+91\s?/, '') || '',
             address: student.address || '',
             registerNumber: student.registerNumber || '',
             schoolInstitution: student.schoolInstitution || '',
             batch: student.batch || '',
             dateOfBirth: student.dateOfBirth || '',
             studentType: student.studentType || 'Regular',
+            advanceBalance: student.advanceBalance || '',
             fatherName: student.fatherName || '',
             fatherPhone: student.fatherPhone || '',
             fatherOccupation: student.fatherOccupation || '',
@@ -129,6 +130,8 @@ const Students = () => {
         setFiles({ ...files, [e.target.name]: e.target.files[0] });
     };
 
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         const data = new FormData();
@@ -136,6 +139,9 @@ const Students = () => {
         Object.keys(formData).forEach(key => {
             if (key === 'selectedCourses') {
                 data.append('courseIds', JSON.stringify(formData[key]));
+            } else if (key === 'phone') {
+                const formattedPhone = formData.phone ? `+91 ${formData.phone}` : '';
+                data.append('phone', formattedPhone);
             } else {
                 data.append(key, formData[key]);
             }
@@ -169,7 +175,7 @@ const Students = () => {
             name: '', email: '', username: '', password: '',
             phone: '', address: '', registerNumber: '', 
             schoolInstitution: '', batch: '', dateOfBirth: '', 
-            studentType: 'Regular',
+            studentType: 'Regular', advanceBalance: '',
             fatherName: '', fatherPhone: '', fatherOccupation: '',
             motherName: '', motherPhone: '', motherOccupation: '',
             selectedCourses: []
@@ -290,7 +296,40 @@ const Students = () => {
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-gray-400">Secure Key</label>
-                                        <input type="password" className="input-field" placeholder="••••••••" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                                        <div className="relative flex items-center">
+                                            <input 
+                                                type={showPassword ? "text" : "password"} 
+                                                className="input-field pr-16" 
+                                                placeholder="••••••••" 
+                                                value={formData.password} 
+                                                onChange={e => setFormData({...formData, password: e.target.value})} 
+                                            />
+                                            <div className="absolute right-3 flex items-center gap-1.5 text-gray-400">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setShowPassword(!showPassword)} 
+                                                    className="p-1 hover:text-primary transition-colors focus:outline-none"
+                                                    title={showPassword ? "Hide password" : "Show password"}
+                                                >
+                                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => {
+                                                        if (formData.password) {
+                                                            navigator.clipboard.writeText(formData.password);
+                                                            toast.success("Secure Key copied to clipboard!");
+                                                        } else {
+                                                            toast.warning("Secure Key is empty");
+                                                        }
+                                                    }} 
+                                                    className="p-1 hover:text-primary transition-colors focus:outline-none"
+                                                    title="Copy secure key"
+                                                >
+                                                    <Copy size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -315,11 +354,23 @@ const Students = () => {
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Birth Timeline</label>
-                                        <input type="text" className="input-field" placeholder="DD-MM-YYYY" value={formData.dateOfBirth} onChange={e => setFormData({...formData, dateOfBirth: e.target.value})} />
+                                        <input type="date" className="input-field" value={formData.dateOfBirth} onChange={e => setFormData({...formData, dateOfBirth: e.target.value})} />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Verified Contact</label>
-                                        <input type="text" className="input-field" placeholder="+..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                        <div className="relative flex items-center">
+                                            <span className="absolute left-4 text-sm font-bold text-gray-400">+91</span>
+                                            <input 
+                                                type="text" 
+                                                className="input-field !pl-14" 
+                                                placeholder="XXXXX XXXXX" 
+                                                value={formData.phone} 
+                                                onChange={e => {
+                                                    const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                    setFormData({...formData, phone: digits});
+                                                }} 
+                                            />
+                                        </div>
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Digital Coordinates</label>
@@ -334,7 +385,7 @@ const Students = () => {
                                     <div className="p-2 bg-orange-500/10 rounded-xl text-orange-600"><BookOpen size={20}/></div>
                                     <h3 className="font-black uppercase text-sm tracking-widest text-gray-800">Academic Trajectory</h3>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Last Affiliation</label>
                                         <input type="text" className="input-field" placeholder="Institution Name" value={formData.schoolInstitution} onChange={e => setFormData({...formData, schoolInstitution: e.target.value})} />
@@ -348,6 +399,10 @@ const Students = () => {
                                             <option value="2026-27">2026-27 Academy</option>
                                             <option value="2026-2027">2026-2027 Academy</option>
                                         </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Advance Amount (₹)</label>
+                                        <input type="number" className="input-field" placeholder="0" value={formData.advanceBalance} onChange={e => setFormData({...formData, advanceBalance: e.target.value})} />
                                     </div>
                                 </div>
                             </div>
@@ -380,10 +435,10 @@ const Students = () => {
                     </div>
 
                     {/* Bottom Action Bar */}
-                    <div className="sticky bottom-0 bg-white/80 backdrop-blur-xl -mx-8 -mb-8 p-8 border-t border-border">
-                        <button type="submit" className="w-full btn-primary !py-6 !rounded-3xl !text-xl uppercase tracking-[0.2em] shadow-2xl shadow-primary/30">
+                    <div className="flex justify-end pt-6">
+                        <button type="submit" className="btn-primary !py-3.5 !px-8 !rounded-2xl !text-xs uppercase tracking-widest shadow-xl shadow-primary/20">
                             {isEdit ? 'Refine Database Record' : 'Commit Onboarding'}
-                            <ChevronRight size={28} />
+                            <ChevronRight size={16} />
                         </button>
                     </div>
                 </form>
