@@ -3,7 +3,7 @@ import axios from '../../utils/axiosInstance';
 import Table from '../../components/Table';
 import { getFileUrl } from '../../utils/fileHelper';
 import Modal from '../../components/Modal';
-import { Plus, CreditCard, Search, Calendar, FileText, User, TrendingUp, AlertCircle, CheckCircle, ChevronRight, Filter, Download, ChevronDown, Image as ImageIcon, Upload, Eye } from 'lucide-react';
+import { Plus, CreditCard, Search, Calendar, FileText, User, TrendingUp, AlertCircle, CheckCircle, ChevronRight, Filter, Download, ChevronDown, Image as ImageIcon, Upload, Eye, Edit2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +18,13 @@ const Payments = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [proofFile, setProofFile] = useState(null);
+
+    // Edit Financials State
+    const [isEditFinancialsOpen, setIsEditFinancialsOpen] = useState(false);
+    const [editStudent, setEditStudent] = useState(null);
+    const [editAdvanceBalance, setEditAdvanceBalance] = useState('');
+    const [editTuitionFee, setEditTuitionFee] = useState('');
+    const [savingFinancials, setSavingFinancials] = useState(false);
 
     // Filter State
     const [filters, setFilters] = useState({
@@ -114,6 +121,24 @@ const Payments = () => {
             remarks: `Monthly fee for ${new Date(filters.year, filters.month).toLocaleString('default', { month: 'long' })}`
         });
         setIsModalOpen(true);
+    };
+
+    const handleSaveFinancials = async (e) => {
+        e.preventDefault();
+        setSavingFinancials(true);
+        try {
+            await axios.put(`/api/students/${editStudent.studentId}`, {
+                advanceBalance: editAdvanceBalance === '' ? 0 : parseFloat(editAdvanceBalance),
+                tuitionFee: editTuitionFee === '' ? null : parseFloat(editTuitionFee)
+            });
+            toast.success('Financial parameters updated successfully');
+            setIsEditFinancialsOpen(false);
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to update financials');
+        } finally {
+            setSavingFinancials(false);
+        }
     };
 
     // Client-side filtering logic
@@ -384,7 +409,12 @@ const Payments = () => {
                                                     </div>
                                                     <div className="flex items-center justify-between gap-6 max-w-[140px]">
                                                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Target</span>
-                                                        <span className="text-sm font-black text-gray-900 opacity-30">₹{s.totalDue.toLocaleString()}</span>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="text-sm font-black text-gray-900 opacity-30">₹{s.totalDue.toLocaleString()}</span>
+                                                            {s.tuitionFee !== null && (
+                                                                <span className="text-[8px] font-black text-primary uppercase bg-primary/10 px-1 py-0.5 rounded-md mt-0.5">Override</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -402,7 +432,19 @@ const Payments = () => {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-6 text-right">
+                                            <td className="px-6 py-6 text-right flex items-center justify-end gap-2">
+                                                <button 
+                                                    onClick={() => {
+                                                        setEditStudent(s);
+                                                        setEditAdvanceBalance(s.advanceBalance || 0);
+                                                        setEditTuitionFee(s.tuitionFee !== null ? s.tuitionFee : '');
+                                                        setIsEditFinancialsOpen(true);
+                                                    }}
+                                                    className="p-4 rounded-2xl bg-gray-100 text-gray-600 hover:bg-primary hover:text-white transition-all active:scale-90 hover:-translate-y-1 shadow-sm"
+                                                    title="Edit Financial Parameters"
+                                                >
+                                                    <Edit2 size={20} />
+                                                </button>
                                                 <button 
                                                     onClick={() => handleQuickPay(s)}
                                                     disabled={s.status === 'paid'}
@@ -411,6 +453,7 @@ const Payments = () => {
                                                             ? 'bg-gray-50 text-gray-200 cursor-not-allowed opacity-50' 
                                                             : 'bg-primary/10 text-primary hover:bg-primary hover:text-white shadow-[0_10px_20px_-10px_rgba(245,158,11,0.5)] active:scale-90 hover:-translate-y-1'
                                                     }`}
+                                                    title="Quick Payment"
                                                 >
                                                     <CreditCard size={20} />
                                                 </button>
@@ -690,6 +733,72 @@ const Payments = () => {
                             </button>
                         </div>
                     </div>
+                </form>
+            </Modal>
+            {/* Edit Financials Modal */}
+            <Modal isOpen={isEditFinancialsOpen} onClose={() => setIsEditFinancialsOpen(false)} title="Adjust Financial Parameters" size="md">
+                <form onSubmit={handleSaveFinancials} className="space-y-6 p-1">
+                    {editStudent && (
+                        <>
+                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-[10px] font-black uppercase text-gray-400">Student Name</span>
+                                    <span className="font-bold text-xs text-gray-900">{editStudent.name}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-[10px] font-black uppercase text-gray-400">Register Number</span>
+                                    <span className="font-mono text-xs font-bold text-gray-900">{editStudent.registerNumber}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-[10px] font-black uppercase text-gray-400">Courses Enrolled</span>
+                                    <span className="font-bold text-xs text-gray-900">{editStudent.courses.join(', ') || 'None'}</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 italic">Tuition Fee Amount (₹)</label>
+                                <input 
+                                    type="number" 
+                                    value={editTuitionFee} 
+                                    onChange={(e) => setEditTuitionFee(e.target.value)} 
+                                    className="input-field !py-4 font-bold text-gray-900 bg-gray-50/50" 
+                                    placeholder="Derived from courses (default)" 
+                                />
+                                <p className="text-[10px] text-gray-400 ml-1">
+                                    Leave blank to automatically calculate based on enrolled course fees.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 italic">Advance Balance (₹)</label>
+                                <input 
+                                    type="number" 
+                                    required
+                                    value={editAdvanceBalance} 
+                                    onChange={(e) => setEditAdvanceBalance(e.target.value)} 
+                                    className="input-field !py-4 font-bold text-gray-900 bg-gray-50/50" 
+                                    placeholder="0.00" 
+                                />
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 flex gap-4">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsEditFinancialsOpen(false)} 
+                                    className="flex-1 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all border border-transparent hover:border-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={savingFinancials}
+                                    className="flex-1 btn-primary !py-3.5 !rounded-2xl !text-xs uppercase tracking-widest shadow-lg shadow-primary/20"
+                                >
+                                    {savingFinancials ? 'Saving...' : 'Save Adjustments'}
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </form>
             </Modal>
         </div>
