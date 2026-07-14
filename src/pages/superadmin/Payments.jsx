@@ -3,7 +3,7 @@ import axios from '../../utils/axiosInstance';
 import Table from '../../components/Table';
 import { getFileUrl } from '../../utils/fileHelper';
 import Modal from '../../components/Modal';
-import { Plus, CreditCard, Search, Calendar, FileText, User, TrendingUp, AlertCircle, CheckCircle, ChevronRight, Filter, Download, ChevronDown, Image as ImageIcon, Upload, Eye, Edit2 } from 'lucide-react';
+import { Plus, CreditCard, Search, Calendar, FileText, User, TrendingUp, AlertCircle, CheckCircle, ChevronRight, Filter, Download, ChevronDown, Image as ImageIcon, Upload, Eye, Edit2, Printer } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +18,10 @@ const Payments = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [proofFile, setProofFile] = useState(null);
+    
+    // Receipt Modal States
+    const [selectedReceipt, setSelectedReceipt] = useState(null);
+    const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
     // Edit Financials State
     const [isEditFinancialsOpen, setIsEditFinancialsOpen] = useState(false);
@@ -167,6 +171,156 @@ const Payments = () => {
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ];
+
+    const handleOpenTrackerReceipt = (s) => {
+        setSelectedReceipt({
+            receiptNumber: `REC-MON-${s.registerNumber}-${months[filters.month].slice(0, 3).toUpperCase()}`,
+            studentName: s.name,
+            registerNumber: s.registerNumber,
+            batch: s.batch,
+            courseName: s.courses.join(', ') || 'Monthly Tuition Fee',
+            amount: s.totalPaid,
+            balance: s.balance,
+            paymentDate: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+            paymentMode: 'Consolidated',
+            phone: s.phone
+        });
+        setIsReceiptModalOpen(true);
+    };
+
+    const handleOpenHistoryReceipt = (p) => {
+        setSelectedReceipt({
+            receiptNumber: p.receiptNumber,
+            studentName: p.studentId?.name || 'N/A',
+            registerNumber: p.registerNumber || 'N/A',
+            batch: p.batch || 'N/A',
+            courseName: p.courses?.join(', ') || p.term || 'Monthly Tuition Fee',
+            amount: p.amount,
+            balance: p.balance !== undefined ? p.balance : 0,
+            paymentDate: new Date(p.paymentDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+            paymentMode: p.paymentMode,
+            phone: p.phone || p.studentId?.phone || ''
+        });
+        setIsReceiptModalOpen(true);
+    };
+
+    const handleSendWhatsApp = (data) => {
+        const phone = data.phone;
+        if (!phone) {
+            toast.error('Student mobile number not found');
+            return;
+        }
+
+        const cleanPhone = (p) => {
+            const digits = p.replace(/\D/g, '');
+            return digits.length === 10 ? `91${digits}` : digits;
+        };
+
+        const formattedPhone = cleanPhone(phone);
+        
+        const message = `*RC ACADEMY - PAYMENT RECEIPT* 🧾\n\nDear *${data.studentName}*,\n\nThank you for your payment. Here are your transaction details:\n\n*Receipt No:* ${data.receiptNumber}\n*Date:* ${data.paymentDate}\n*Amount Paid:* ₹${data.amount.toLocaleString()}\n*Course:* ${data.courseName}\n*Payment Mode:* ${data.paymentMode.toUpperCase()}\n*Batch:* ${data.batch}\n*Register No:* ${data.registerNumber}\n\n*Outstanding Balance:* ₹${data.balance.toLocaleString()}\n\nThis is a computer-generated receipt.\nThank you,\n*RC Academy*`;
+
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    };
+
+    const handlePrintReceipt = () => {
+        if (!selectedReceipt) return;
+        const win = window.open('', '_blank');
+        win.document.write(`
+            <html>
+                <head>
+                    <title>Receipt - ${selectedReceipt.receiptNumber}</title>
+                    <style>
+                        @page {
+                            size: 6in 4in;
+                            margin: 0;
+                        }
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            background: white;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                        }
+                        .print-receipt-container {
+                            width: 6in;
+                            height: 4in;
+                            padding: 15px;
+                            box-sizing: border-box;
+                            border: 2px solid #1f2937;
+                            font-family: Arial, sans-serif;
+                            background: white;
+                            color: #111827;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-receipt-container">
+                        <!-- Top Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">
+                            <div>
+                                <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #1f2937; letter-spacing: -0.5px;">RC ACADEMY</h2>
+                                <p style="margin: 2px 0 0 0; font-size: 9px; color: #6b7280; max-width: 250px; line-height: 1.2;">
+                                    Kundrathur Main Rd, Mangadu, Chennai, Tamil Nadu 600122
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 14px; font-weight: 800; color: #f59e0b; display: block; text-transform: uppercase;">Payment Receipt</span>
+                                <span style="font-size: 9px; color: #4b5563; font-family: monospace; display: block; margin-top: 2px;">REC: ${selectedReceipt.receiptNumber}</span>
+                            </div>
+                        </div>
+
+                        <!-- Student & Details Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; font-size: 10px;">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <div><strong style="color: #4b5563; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; display: block;">Student Name</strong> <span style="font-weight: 700; color: #111827;">${selectedReceipt.studentName}</span></div>
+                                <div><strong style="color: #4b5563; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; display: block;">Register Number</strong> <span style="font-weight: 700; color: #111827;">${selectedReceipt.registerNumber}</span></div>
+                                <div><strong style="color: #4b5563; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; display: block;">Batch</strong> <span style="font-weight: 700; color: #111827;">${selectedReceipt.batch}</span></div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 20px; border-left: 1px solid #f3f4f6;">
+                                <div><strong style="color: #4b5563; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; display: block;">Payment Date</strong> <span style="font-weight: 700; color: #111827;">${selectedReceipt.paymentDate}</span></div>
+                                <div><strong style="color: #4b5563; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; display: block;">Payment Mode</strong> <span style="font-weight: 700; color: #111827; text-transform: uppercase;">${selectedReceipt.paymentMode}</span></div>
+                                <div><strong style="color: #4b5563; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; display: block;">Course</strong> <span style="font-weight: 700; color: #111827; display: block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${selectedReceipt.courseName}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Amount Table / Total Section -->
+                        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                            <div>
+                                <span style="color: #4b5563; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; display: block;">Total Paid</span>
+                                <span style="font-size: 20px; font-weight: 900; color: #10b981;">INR ${selectedReceipt.amount.toLocaleString()}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="color: #4b5563; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; display: block;">Outstanding Balance</span>
+                                <span style="font-size: 14px; font-weight: 700; color: #ef4444;">INR ${selectedReceipt.balance.toLocaleString()}</span>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px; font-size: 8px; color: #9ca3af;">
+                            <span style="font-style: italic;">Computer generated receipt. No signature required.</span>
+                            <span style="font-weight: 700; color: #4b5563; border-top: 1px dashed #d1d5db; padding-top: 2px; min-width: 100px; text-align: center;">Authorized Signatory</span>
+                        </div>
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            window.close();
+                        }
+                    </script>
+                </body>
+            </html>
+        `);
+        win.document.close();
+    };
 
     return (
         <div className="space-y-8 animate-slide-up pb-10">
@@ -433,6 +587,37 @@ const Payments = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-6 text-right flex items-center justify-end gap-2">
+                                                {s.totalPaid > 0 && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleOpenTrackerReceipt(s)}
+                                                            className="p-4 rounded-2xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all active:scale-90 hover:-translate-y-1 shadow-sm"
+                                                            title="Print 6x4 Receipt"
+                                                        >
+                                                            <Printer size={20} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleSendWhatsApp({
+                                                                receiptNumber: `REC-MON-${s.registerNumber}-${months[filters.month].slice(0, 3).toUpperCase()}`,
+                                                                studentName: s.name,
+                                                                registerNumber: s.registerNumber,
+                                                                batch: s.batch,
+                                                                courseName: s.courses.join(', '),
+                                                                amount: s.totalPaid,
+                                                                balance: s.balance,
+                                                                paymentDate: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+                                                                paymentMode: 'Consolidated',
+                                                                phone: s.phone
+                                                            })}
+                                                            className="p-4 rounded-2xl bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all active:scale-90 hover:-translate-y-1 shadow-sm flex items-center justify-center"
+                                                            title="Send via WhatsApp"
+                                                        >
+                                                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.588 1.45 5.416 1.451 5.54.004 10.05-4.506 10.054-10.052.002-2.687-1.042-5.212-2.94-7.111-1.9-1.899-4.426-2.946-7.117-2.947-5.545 0-10.054 4.507-10.059 10.051-.002 1.838.489 3.633 1.424 5.207L1.836 21.84l4.81-1.268zM17.486 14.4c-.3-.15-1.774-.875-2.049-.976-.276-.1-.476-.15-.676.15-.2.3-.775.976-.95 1.176-.175.2-.35.225-.65.075-.301-.15-1.267-.467-2.414-1.492-.893-.797-1.495-1.782-1.67-2.083-.175-.3-.018-.462.13-.61.135-.133.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.676-1.625-.925-2.225-.244-.588-.491-.508-.676-.518-.174-.01-.375-.012-.574-.012s-.525.075-.8.375c-.275.3-1.05 1.025-1.05 2.5s1.075 2.9 1.225 3.1c.15.2 2.11 3.224 5.112 4.521.714.309 1.272.494 1.707.632.716.228 1.368.196 1.883.118.574-.087 1.774-.726 2.024-1.425.25-.699.25-1.299.175-1.425-.076-.125-.275-.2-.575-.35z"/>
+                                                            </svg>
+                                                        </button>
+                                                    </>
+                                                )}
                                                 <button 
                                                     onClick={() => {
                                                         setEditStudent(s);
@@ -470,7 +655,7 @@ const Payments = () => {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                <Table headers={['Receipt Vector', 'Beneficiary Identity', 'Commit Details', 'Execution Timeline', 'Verified Status']}>
+                                <Table headers={['Receipt Vector', 'Beneficiary Identity', 'Commit Details', 'Execution Timeline', 'Verified Status', 'Actions']}>
                                     {historyData.filter(h => h.receiptNumber.toLowerCase().includes(searchTerm.toLowerCase())).map((p) => (
                                         <tr key={p._id} className="hover:bg-primary/[0.02] transition-colors group">
                                             <td className="px-6 py-6">
@@ -482,7 +667,7 @@ const Payments = () => {
                                             <td className="px-6 py-6">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-[11px] uppercase border-2 border-white shadow-md">
-                                                        {p.studentId?.name[0]}
+                                                        {p.studentId?.name ? p.studentId.name[0] : 'N'}
                                                     </div>
                                                     <p className="font-black text-sm tracking-tight text-gray-900">{p.studentId?.name}</p>
                                                 </div>
@@ -513,6 +698,35 @@ const Payments = () => {
                                                         <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.1em] italic">No Proof</span>
                                                     )}
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-6 text-right flex items-center justify-end gap-2">
+                                                <button 
+                                                    onClick={() => handleOpenHistoryReceipt(p)}
+                                                    className="p-3 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all active:scale-90 hover:-translate-y-0.5 shadow-sm flex items-center justify-center"
+                                                    title="Print 6x4 Receipt"
+                                                >
+                                                    <Printer size={16} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleSendWhatsApp({
+                                                        receiptNumber: p.receiptNumber,
+                                                        studentName: p.studentId?.name || 'N/A',
+                                                        registerNumber: p.registerNumber || 'N/A',
+                                                        batch: p.batch || 'N/A',
+                                                        courseName: p.courses?.join(', ') || p.term || 'Monthly Tuition Fee',
+                                                        amount: p.amount,
+                                                        balance: p.balance !== undefined ? p.balance : 0,
+                                                        paymentDate: new Date(p.paymentDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+                                                        paymentMode: p.paymentMode,
+                                                        phone: p.phone || p.studentId?.phone || ''
+                                                    })}
+                                                    className="p-3 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all active:scale-90 hover:-translate-y-0.5 shadow-sm flex items-center justify-center"
+                                                    title="Send via WhatsApp"
+                                                >
+                                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.588 1.45 5.416 1.451 5.54.004 10.05-4.506 10.054-10.052.002-2.687-1.042-5.212-2.94-7.111-1.9-1.899-4.426-2.946-7.117-2.947-5.545 0-10.054 4.507-10.059 10.051-.002 1.838.489 3.633 1.424 5.207L1.836 21.84l4.81-1.268zM17.486 14.4c-.3-.15-1.774-.875-2.049-.976-.276-.1-.476-.15-.676.15-.2.3-.775.976-.95 1.176-.175.2-.35.225-.65.075-.301-.15-1.267-.467-2.414-1.492-.893-.797-1.495-1.782-1.67-2.083-.175-.3-.018-.462.13-.61.135-.133.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.676-1.625-.925-2.225-.244-.588-.491-.508-.676-.518-.174-.01-.375-.012-.574-.012s-.525.075-.8.375c-.275.3-1.05 1.025-1.05 2.5s1.075 2.9 1.225 3.1c.15.2 2.11 3.224 5.112 4.521.714.309 1.272.494 1.707.632.716.228 1.368.196 1.883.118.574-.087 1.774-.726 2.024-1.425.25-.699.25-1.299.175-1.425-.076-.125-.275-.2-.575-.35z"/>
+                                                    </svg>
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -800,6 +1014,113 @@ const Payments = () => {
                         </>
                     )}
                 </form>
+            </Modal>
+
+            {/* 6x4 Receipt Preview Modal */}
+            <Modal 
+                isOpen={isReceiptModalOpen} 
+                onClose={() => setIsReceiptModalOpen(false)} 
+                title="6x4 Thermal Receipt Preview"
+                size="md"
+            >
+                {selectedReceipt && (
+                    <div className="space-y-6 flex flex-col items-center">
+                        {/* 6x4 Printable Area Container */}
+                        <div 
+                            className="bg-white text-gray-900 border-2 border-gray-800 p-4 font-sans select-none flex flex-col justify-between shadow-lg"
+                            style={{
+                                width: '6in',
+                                height: '4in',
+                                boxSizing: 'border-box',
+                            }}
+                            id="receipt-print-area"
+                        >
+                            {/* Top Header */}
+                            <div className="flex justify-between items-start border-b-2 border-amber-500 pb-2">
+                                <div>
+                                    <h2 className="m-0 text-[18px] font-black text-gray-800 leading-none tracking-tight">RC ACADEMY</h2>
+                                    <p className="m-0 mt-1 text-[8px] text-gray-500 max-w-[220px] leading-tight">
+                                        Kundrathur Main Rd, Mangadu, Chennai, Tamil Nadu 600122
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[12px] font-extrabold text-amber-500 block uppercase leading-none">Receipt</span>
+                                    <span className="text-[8px] text-gray-500 font-mono block mt-1">{selectedReceipt.receiptNumber}</span>
+                                </div>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 my-2 text-[9px]">
+                                <div className="flex flex-col gap-1.5">
+                                    <div>
+                                        <strong className="text-gray-400 uppercase text-[7px] tracking-wider block">Student Name</strong>
+                                        <span className="font-bold text-gray-800">{selectedReceipt.studentName}</span>
+                                    </div>
+                                    <div>
+                                        <strong className="text-gray-400 uppercase text-[7px] tracking-wider block">Register Number</strong>
+                                        <span className="font-bold text-gray-800">{selectedReceipt.registerNumber}</span>
+                                    </div>
+                                    <div>
+                                        <strong className="text-gray-400 uppercase text-[7px] tracking-wider block">Batch</strong>
+                                        <span className="font-bold text-gray-800">{selectedReceipt.batch}</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1.5 pl-4 border-l border-gray-100">
+                                    <div>
+                                        <strong className="text-gray-400 uppercase text-[7px] tracking-wider block">Payment Date</strong>
+                                        <span className="font-bold text-gray-800">{selectedReceipt.paymentDate}</span>
+                                    </div>
+                                    <div>
+                                        <strong className="text-gray-400 uppercase text-[7px] tracking-wider block">Payment Mode</strong>
+                                        <span className="font-bold text-gray-800 uppercase">{selectedReceipt.paymentMode}</span>
+                                    </div>
+                                    <div>
+                                        <strong className="text-gray-400 uppercase text-[7px] tracking-wider block">Course</strong>
+                                        <span className="font-bold text-gray-800 block truncate max-w-[150px]">{selectedReceipt.courseName}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Totals Box */}
+                            <div className="bg-gray-50 border border-gray-100 rounded-md p-2 flex justify-between items-center my-1">
+                                <div>
+                                    <span className="text-gray-400 uppercase text-[7px] tracking-wider block">Total Paid</span>
+                                    <span className="text-[16px] font-black text-emerald-600">INR {selectedReceipt.amount.toLocaleString()}</span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-gray-400 uppercase text-[7px] tracking-wider block">Outstanding Balance</span>
+                                    <span className="text-[12px] font-bold text-red-500">INR {selectedReceipt.balance.toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex justify-between items-end text-[7px] text-gray-400 mt-1">
+                                <span className="italic">Computer generated. No signature required.</span>
+                                <span className="font-bold text-gray-500 border-t border-dashed border-gray-300 pt-0.5 min-w-[80px] text-center">Authorized Signatory</span>
+                            </div>
+                        </div>
+
+                        {/* Actions in Preview Modal */}
+                        <div className="flex gap-4 w-full">
+                            <button
+                                onClick={handlePrintReceipt}
+                                className="flex-1 btn-primary !py-3 !rounded-xl !text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2"
+                            >
+                                <Printer size={16} />
+                                Print Receipt (6x4)
+                            </button>
+                            <button
+                                onClick={() => handleSendWhatsApp(selectedReceipt)}
+                                className="flex-1 py-3 bg-emerald-500 text-white rounded-xl text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all font-black flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.588 1.45 5.416 1.451 5.54.004 10.05-4.506 10.054-10.052.002-2.687-1.042-5.212-2.94-7.111-1.9-1.899-4.426-2.946-7.117-2.947-5.545 0-10.054 4.507-10.059 10.051-.002 1.838.489 3.633 1.424 5.207L1.836 21.84l4.81-1.268zM17.486 14.4c-.3-.15-1.774-.875-2.049-.976-.276-.1-.476-.15-.676.15-.2.3-.775.976-.95 1.176-.175.2-.35.225-.65.075-.301-.15-1.267-.467-2.414-1.492-.893-.797-1.495-1.782-1.67-2.083-.175-.3-.018-.462.13-.61.135-.133.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.676-1.625-.925-2.225-.244-.588-.491-.508-.676-.518-.174-.01-.375-.012-.574-.012s-.525.075-.8.375c-.275.3-1.05 1.025-1.05 2.5s1.075 2.9 1.225 3.1c.15.2 2.11 3.224 5.112 4.521.714.309 1.272.494 1.707.632.716.228 1.368.196 1.883.118.574-.087 1.774-.726 2.024-1.425.25-.699.25-1.299.175-1.425-.076-.125-.275-.2-.575-.35z"/>
+                                </svg>
+                                Send WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );

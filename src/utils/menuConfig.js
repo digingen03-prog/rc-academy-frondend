@@ -23,6 +23,7 @@ export const menuItems = {
         { path: '/superadmin/payments', name: 'Payments', icon: CreditCard },
         { path: '/superadmin/expenses', name: 'Expenses', icon: Wallet },
         { path: '/superadmin/finance', name: 'Finance', icon: Wallet },
+        { path: '/superadmin/salary', name: 'Staff Salary', icon: Wallet },
     ],
     admin: [
         { path: '/admin/dashboard', name: 'Dashboard', icon: LayoutDashboard },

@@ -27,6 +27,7 @@ import StudentMarks from './pages/student/Marks';
 import StudentAttendance from './pages/student/Attendance';
 import Profile from './pages/Profile';
 import StaffSalary from './pages/staff/Salary';
+import SuperAdminSalary from './pages/superadmin/Salary';
 
 // Placeholder Dashboards
 const DashPlaceholder = ({ role }) => (
@@ -56,6 +57,7 @@ function App() {
               <Route path="/superadmin/payments" element={<Payments />} />
               <Route path="/superadmin/expenses" element={<Expenses />} />
               <Route path="/superadmin/finance" element={<Finance />} />
+              <Route path="/superadmin/salary" element={<SuperAdminSalary />} />
             </Route>
           </Route>
 
